@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/sellCars/ad_detail_screen.dart';
-import 'package:mators_car/screens/home/component/ad_card.dart';
-import 'package:mators_car/screens/home/component/featured_ads_section.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/mock_data.dart' show MockData;
 import 'package:mators_car/widgets/section_header.dart';
