@@ -91,7 +91,7 @@ class IntroScreen extends StatelessWidget {
                     TextButton(
                       onPressed: () {
                         // تصفح كزائر
-                        Navigator.pushReplacementNamed(context, '/login');
+                        Navigator.pushReplacementNamed(context, '/home');
                       },
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white.withOpacity(0.9),

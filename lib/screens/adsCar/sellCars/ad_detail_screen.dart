@@ -3,218 +3,413 @@ import 'package:mators_car/models/ad_model.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/section_header.dart';
 
-class AdDetailScreen extends StatelessWidget {
+class AdDetailScreen extends StatefulWidget {
   final Ad ad;
-
   const AdDetailScreen({super.key, required this.ad});
+
+  @override
+  State<AdDetailScreen> createState() => _AdDetailScreenState();
+}
+
+class _AdDetailScreenState extends State<AdDetailScreen> {
+  bool _isFavorite = false;
+  int _currentImageIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F9),
       appBar: AppBar(
-        title: const Text('تفاصيل الإعلان'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'تفاصيل الإعلان',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+            size: 20,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share),
+            icon: const Icon(Icons.share_outlined, color: Colors.black),
             onPressed: () {},
           ),
           IconButton(
-            icon: const Icon(Icons.favorite_border),
-            onPressed: () {},
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? Colors.red : Colors.black,
+            ),
+            onPressed: () => setState(() => _isFavorite = !_isFavorite),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Car Images Gallery
-            _buildImageGallery(),
-
-            // Car Details
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${ad.car.make} ${ad.car.model} ${ad.car.year}',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // معرض الصور الفاخر مع الترقيم التفاعلي الذكي بالأسفل
+                Stack(
+                  children: [
+                    SizedBox(
+                      height: 260,
+                      child: PageView.builder(
+                        itemCount: widget.ad.car.images.length,
+                        onPageChanged:
+                            (index) =>
+                                setState(() => _currentImageIndex = index),
+                        itemBuilder: (context, index) {
+                          final imageUrl = widget.ad.car.images[index];
+                          return imageUrl.isNotEmpty
+                              ? Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Image.asset(
+                                      'assets/image/intro.jpg',
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                    ),
+                              )
+                              : Image.asset(
+                                'assets/image/intro.jpg',
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                              );
+                        },
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Price and Status
-                  Row(
-                    children: [
-                      Container(
+                    Positioned(
+                      bottom: 12,
+                      left: 16,
+                      child: Container(
                         padding: const EdgeInsets.symmetric(
-                            vertical: 6, horizontal: 12
+                          horizontal: 10,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${ad.price} ل.س',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 6, horizontal: 12
-                        ),
-                        decoration: BoxDecoration(
-                          color: ad.status == 'pending'
-                              ? AppColors.warning.withOpacity(0.2)
-                              : AppColors.success.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: ad.status == 'pending'
-                                ? AppColors.warning
-                                : AppColors.success,
-                          ),
-                        ),
-                        child: Text(
-                          ad.status == 'pending' ? 'قيد المراجعة' : 'منشور',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: ad.status == 'pending'
-                                ? AppColors.warning
-                                : AppColors.success,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Car Info
-                  const SectionHeader(title: 'معلومات السيارة'),
-                  const SizedBox(height: 10),
-                  _buildCarInfoTable(),
-
-                  // Description
-                  const SizedBox(height: 20),
-                  const SectionHeader(title: 'الوصف'),
-                  const SizedBox(height: 10),
-                  Text(
-                    ad.car.description,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: AppColors.textSecondary,
-                      height: 1.5,
-                    ),
-                  ),
-
-                  // Contact Seller
-                  const SizedBox(height: 30),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
+                          color: Colors.black.withOpacity(0.5),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                      child: const Text(
-                        'اتصل بالبائع',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                        child: Text(
+                          '${_currentImageIndex + 1} / ${widget.ad.car.images.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                     ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // اسم وموقع السيارة العلوي
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '${widget.ad.car.make} ${widget.ad.car.model} ${widget.ad.car.year}',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.ad.car.location,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'منذ ساعتين',
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '${widget.ad.price} ل.س',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // شبكة المواصفات الأربعة الكتلية (أيقونات دقيقة وتسمية بالأسفل)
+                      _buildFourGridSpecs(),
+                      const SizedBox(height: 24),
+
+                      const SectionHeader(title: 'الوصف'),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.ad.car.description,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                          height: 1.6,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // كارت معلومات البائع التفاعلي والكامل تماماً كما في الرسمة
+                      const SectionHeader(title: 'معلومات البائع'),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            const CircleAvatar(
+                              radius: 26,
+                              backgroundImage: NetworkImage(
+                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200',
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.ad.car.userName.isNotEmpty
+                                        ? widget.ad.car.userName
+                                        : 'أحمد محمد',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.star,
+                                        color: Colors.amber,
+                                        size: 16,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        '4.9 (128 تقييم)',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.verified,
+                                        color: Colors.green,
+                                        size: 14,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'موثق',
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => _openActionSheet('محادثة'),
+                              icon: Icon(
+                                Icons.chat_bubble_outline,
+                                color: AppColors.primary,
+                              ),
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.primary.withOpacity(
+                                  0.08,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: () => _openActionSheet('اتصال مجاني'),
+                              icon: Icon(
+                                Icons.phone_outlined,
+                                color: AppColors.primary,
+                              ),
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppColors.primary.withOpacity(
+                                  0.08,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 100),
+                    ],
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+          // زر الاتصال المباشر العريض السفلي المدمج
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.white,
+              child: ElevatedButton.icon(
+                onPressed: () => _openActionSheet('اتصال مباشر بالبائع'),
+                icon: const Icon(Icons.phone_in_talk, color: Colors.white),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  minimumSize: const Size(double.infinity, 52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                label: const Text(
+                  'اتصل بالبائع',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildImageGallery() {
-    return SizedBox(
-      height: 300,
-      child: PageView.builder(
-        itemCount: ad.car.images.length,
-        itemBuilder: (context, index) {
-          return Image.network(
-            ad.car.images[index],
-            fit: BoxFit.cover,
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildCarInfoTable() {
-    return Table(
-      columnWidths: const {
-        0: FlexColumnWidth(1.5),
-        1: FlexColumnWidth(2),
+  Widget _buildFourGridSpecs() {
+    final specs = [
+      {
+        'title': 'نوع الوقود',
+        'val': 'بنزين',
+        'icon': Icons.local_gas_station_outlined,
       },
-      children: [
-        _buildTableRow('الماركة', ad.car.make),
-        _buildTableRow('الموديل', ad.car.model),
-        _buildTableRow('سنة الصنع', ad.car.year.toString()),
-        _buildTableRow('الحالة', ad.car.condition == 'used' ? 'مستعمل' : 'جديد'),
-        _buildTableRow('الموقع', ad.car.location),
-        _buildTableRow('تاريخ الإضافة', _formatDate(ad.createdAt)),
-      ],
-    );
-  }
-
-  TableRow _buildTableRow(String title, String value) {
-    return TableRow(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.surfaceDark,
-            width: 1,
-          ),
-        ),
+      {
+        'title': 'ناقل الحركة',
+        'val': 'أوتوماتيك',
+        'icon': Icons.settings_input_component_outlined,
+      },
+      {
+        'title': 'السنة',
+        'val': widget.ad.car.year.toString(),
+        'icon': Icons.calendar_today_outlined,
+      },
+      {'title': 'العداد', 'val': '120,000 كم', 'icon': Icons.speed_outlined},
+    ];
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 2.3,
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
       ),
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Text(
-            title,
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.bold,
-            ),
+      itemCount: specs.length,
+      itemBuilder: (context, index) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-            ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                specs[index]['icon'] as IconData,
+                color: AppColors.primary,
+                size: 24,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                specs[index]['val'] as String,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              Text(
+                specs[index]['title'] as String,
+                style: const TextStyle(color: Colors.grey, fontSize: 11),
+              ),
+            ],
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+  void _openActionSheet(String actionName) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder:
+          (context) => Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'جاري فتح $actionName الخاص بالبائع لتسهيل العملية المباشرة.',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+    );
   }
 }

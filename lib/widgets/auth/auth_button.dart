@@ -19,6 +19,7 @@ class AuthButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 56,
+      width: double.infinity,
       decoration: BoxDecoration(
         gradient: gradient ?? AppColors.primaryGradient,
         borderRadius: BorderRadius.circular(14),

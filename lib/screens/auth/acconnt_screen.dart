@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/auth/acconnt_card.dart';
 
-
 class AccountTypeScreen extends StatelessWidget {
   const AccountTypeScreen({super.key});
 
@@ -51,7 +50,8 @@ class AccountTypeScreen extends StatelessWidget {
                     children: const [
                       AccountTypeCard(
                         title: 'حساب فردي',
-                        description: 'مناسب للأفراد الذين يرغبون ببيع أو شراء السيارات',
+                        description:
+                            'مناسب للأفراد الذين يرغبون ببيع أو شراء السيارات',
                         icon: Icons.person_outline,
                         accountTypeId: 1,
                         color: AppColors.primary,
@@ -63,14 +63,6 @@ class AccountTypeScreen extends StatelessWidget {
                         icon: Icons.business_outlined,
                         accountTypeId: 2,
                         color: AppColors.secondary,
-                      ),
-                      SizedBox(height: 20),
-                      AccountTypeCard(
-                        title: 'حساب ورشة',
-                        description: 'لورشات الصيانة ومراكز خدمة السيارات',
-                        icon: Icons.build_outlined,
-                        accountTypeId: 3,
-                        color: AppColors.info,
                       ),
                     ],
                   ),

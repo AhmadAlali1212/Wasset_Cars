@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:provider/provider.dart';
 import 'package:mators_car/screens/auth/acconnt_screen.dart';
 import 'package:mators_car/screens/auth/forget_screen.dart';
-import 'package:mators_car/screens/auth/storeg/auth_storage.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-  final AuthService _authService = AuthService();
+  late AuthService _authService;
 
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -40,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen>
 
     SchedulerBinding.instance.addPostFrameCallback((_) {
       _controller.forward();
+      _authService = Provider.of<AuthService>(context, listen: false);
     });
   }
 
@@ -48,16 +49,14 @@ class _LoginScreenState extends State<LoginScreen>
       setState(() => _isLoading = true);
 
       try {
-        final response = await _authService.login(
+        await _authService.login(
           email: _emailController.text,
           password: _passwordController.text,
         );
 
-        final String token = response['access_token'];
-        await AuthStorage.saveToken(token);
-
-        print('User logged in: ${response['user']}');
-        print('Access token: $token');
+        if (!mounted) {
+          return;
+        }
 
         Navigator.pushReplacementNamed(context, '/main');
       } on DioException catch (e) {
@@ -71,15 +70,23 @@ class _LoginScreenState extends State<LoginScreen>
             errorMessage = e.response?.data['message'];
           }
         }
+        if (!mounted) {
+          return;
+        }
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(errorMessage)));
       } catch (e) {
+        if (!mounted) {
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('حدث خطأ غير متوقع: ${e.toString()}')),
         );
       } finally {
-        setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }

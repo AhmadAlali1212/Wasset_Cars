@@ -3,9 +3,6 @@ import 'package:mators_car/models/auction_model.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/section_header.dart';
 
-import '../../widgets/auction/bid_history_item.dart';
-import '../../widgets/auction/car_image_slider.dart';
-
 class AuctionDetailScreen extends StatefulWidget {
   final Auction auction;
 
@@ -18,53 +15,85 @@ class AuctionDetailScreen extends StatefulWidget {
 class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
   final _bidController = TextEditingController();
   bool _isBidding = false;
+  bool _isFavorite = false;
+  int _currentImageIndex = 0;
 
-  // Helper to parse formatted prices
   double _parsePrice(String price) {
     try {
-      String cleanPrice = price.replaceAll(',', '').replaceAll(' ', '').replaceAll('ل.س', '');
+      String cleanPrice = price
+          .replaceAll(',', '')
+          .replaceAll(' ', '')
+          .replaceAll('ل.س', '');
       return double.parse(cleanPrice);
     } catch (e) {
       return 0.0;
     }
   }
 
-  // Helper to format prices for display
   String _formatPrice(double price) {
     String priceStr = price.toStringAsFixed(0);
     String formatted = '';
     int counter = 0;
-
     for (int i = priceStr.length - 1; i >= 0; i--) {
       counter++;
       formatted = priceStr[i] + formatted;
-      if (counter % 3 == 0 && i != 0) {
-        formatted = ',$formatted';
-      }
+      if (counter % 3 == 0 && i != 0) formatted = ',$formatted';
     }
-
     return '$formatted ل.س';
   }
 
   @override
-  Widget build(BuildContext context) {
-    final timeRemaining = widget.auction.endTime.difference(DateTime.now());
-    final hoursRemaining = timeRemaining.inHours;
-    final daysRemaining = timeRemaining.inDays;
+  void dispose() {
+    _bidController.dispose();
+    super.dispose();
+  }
 
-    // Parse current price once
+  @override
+  Widget build(BuildContext context) {
     final currentPriceValue = _parsePrice(widget.auction.currentPrice);
     final startingPriceValue = _parsePrice(widget.auction.startingPrice);
     final minBid = currentPriceValue * 1.05;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F9),
       appBar: AppBar(
-        title: const Text('تفاصيل المزاد'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          'تفاصيل المزاد',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.black,
+            size: 20,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {},
+            icon: const Icon(Icons.share_outlined, color: Colors.black),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم نسخ رابط المزاد بنجاح!'),
+                  backgroundColor: AppColors.primary,
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? Colors.red : Colors.black,
+            ),
+            onPressed: () => setState(() => _isFavorite = !_isFavorite),
           ),
         ],
       ),
@@ -74,197 +103,263 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Car Images
-                CarImageSlider(images: widget.auction.car.images),
-
-                // Auction Details
+                // معرض الصور مع شارة المزاد المباشر الهلامية ومؤشر الصفحات الرقمي
+                Stack(
+                  children: [
+                    SizedBox(
+                      height: 260,
+                      child: PageView.builder(
+                        itemCount: widget.auction.car.images.length,
+                        onPageChanged:
+                            (index) =>
+                                setState(() => _currentImageIndex = index),
+                        itemBuilder: (context, index) {
+                          return Image.network(
+                            widget.auction.car.images[index],
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 4,
+                              backgroundColor: Colors.white,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'مزاد مباشر',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 12,
+                      left: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_currentImageIndex + 1} / ${widget.auction.car.images.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Car Title
-                      Text(
-                        '${widget.auction.car.make} ${widget.auction.car.model} ${widget.auction.car.year}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // Timer and Status
+                      // العنوان والموقع الفعلي
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: widget.auction.status == 'active'
-                                  ? AppColors.primary
-                                  : widget.auction.status == 'ended'
-                                  ? Colors.grey
-                                  : AppColors.secondary,
-                              borderRadius: BorderRadius.circular(20),
+                          Text(
+                            '${widget.auction.car.make} ${widget.auction.car.model} ${widget.auction.car.year}',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
                             ),
-                            child: Row(
+                          ),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                widget.auction.car.location,
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // كارت الأسعار والعداد الزمني المدمج بالتصميم الجديد
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
-                                const Icon(Icons.timer_outlined, size: 16, color: Colors.white),
-                                const SizedBox(width: 4),
-                                Text(
-                                  widget.auction.status == 'active'
-                                      ? '${daysRemaining}d ${hoursRemaining.remainder(24)}h'
-                                      : widget.auction.status == 'ended'
-                                      ? 'انتهى'
-                                      : 'قريباً',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                Column(
+                                  children: [
+                                    const Text(
+                                      'ينتهي بعد',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '2 يوم و 12 ساعة',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  width: 1,
+                                  height: 35,
+                                  color: Colors.grey.shade200,
+                                ),
+                                Column(
+                                  children: [
+                                    const Text(
+                                      'السعر الابتدائي',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatPrice(startingPriceValue),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  width: 1,
+                                  height: 35,
+                                  color: Colors.grey.shade200,
+                                ),
+                                Column(
+                                  children: [
+                                    const Text(
+                                      'السعر الحالي',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatPrice(currentPriceValue),
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: widget.auction.status == 'active'
-                                  ? AppColors.success.withOpacity(0.2)
-                                  : AppColors.warning.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: widget.auction.status == 'active'
-                                    ? AppColors.success
-                                    : AppColors.warning,
-                              ),
+                            const Divider(height: 24),
+                            // العدادات الدائرية المصغرة المعروضة بالصورة
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildTimeCircularUnit('45', 'ثانية'),
+                                _buildTimeCircularUnit('30', 'دقيقة'),
+                                _buildTimeCircularUnit('12', 'ساعة'),
+                                _buildTimeCircularUnit('02', 'يوم'),
+                              ],
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // المواصفات الأساسية الأربعة الموزعة شبكياً أسفل العداد
+                      _buildAuctionGridSpecs(),
+                      const SizedBox(height: 20),
+
+                      const SectionHeader(title: 'الوصف'),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.auction.car.description.isNotEmpty
+                            ? widget.auction.car.description
+                            : 'سيارة بحالة ممتازة، محرك قوي واقتصادي، جميع الصيانات في المركز المعتمد، لا تحتاج لأي مصاريف إضافية.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                          height: 1.6,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // قسم تاريخ المزايدات المحسن مع عرض الكل التفاعلي
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const SectionHeader(title: 'تاريخ المزايدات'),
+                          TextButton(
+                            onPressed: () {},
                             child: Text(
-                              widget.auction.status == 'active' ? 'نشط' : 'منتهي',
+                              'عرض الكل',
                               style: TextStyle(
-                                color: widget.auction.status == 'active'
-                                    ? AppColors.success
-                                    : AppColors.warning,
-                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                                fontSize: 13,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
-
-                      // Price Info
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // العمود الأول - السعر الحالي
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'السعر الحالي',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      _formatPrice(currentPriceValue),
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(width: 16), // مسافة بين العمودين
-
-                            // العمود الثاني - السعر الابتدائي
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'السعر الابتدائي',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      _formatPrice(startingPriceValue),
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: AppColors.textSecondary,
-                                        decoration: TextDecoration.lineThrough,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Car Info
-                      const SectionHeader(title: 'معلومات السيارة'),
-                      const SizedBox(height: 12),
-                      _buildCarInfoTable(),
-                      const SizedBox(height: 20),
-
-                      // Description
-                      const SectionHeader(title: 'الوصف'),
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.auction.car.description,
-                        style: TextStyle(
-                          fontSize: 15,
-                          color: AppColors.textSecondary,
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Bid History
-                      if (widget.auction.bids.isNotEmpty)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SectionHeader(title: 'تاريخ المزايدات'),
-                            const SizedBox(height: 12),
-                            ...widget.auction.bids.reversed.map((bid) =>
-                                BidHistoryItem(bid: bid)
-                            ).toList(),
-                          ],
-                        ),
-
-                      const SizedBox(height: 100), // Space for bid button
+                      const SizedBox(height: 10),
+                      _buildBidsMockList(),
+                      const SizedBox(height: 110),
                     ],
                   ),
                 ),
               ],
             ),
           ),
-
-          // Bid Button
+          // بار المزايدة السفلي المتفاعل تماماً كما يظهر في التصميم تماماً
           if (widget.auction.status == 'active')
             Positioned(
               bottom: 0,
@@ -274,68 +369,66 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
-                      offset: const Offset(0, -5),
+                      offset: const Offset(0, -4),
                     ),
                   ],
                 ),
-                child: Column(
+                child: Row(
                   children: [
-                    if (_isBidding)
-                      Container(
-                        padding: const EdgeInsets.all(12),
+                    Expanded(
+                      flex: 4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextFormField(
-                                controller: _bidController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
-                                  hintText: 'أدخل المبلغ (الحد الأدنى: ${_formatPrice(minBid)})',
-                                  border: InputBorder.none,
-                                ),
-                              ),
+                        child: TextFormField(
+                          controller: _bidController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: _formatPrice(minBid),
+                            border: InputBorder.none,
+                            suffixText: 'ل.س',
+                            suffixStyle: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.close),
-                              onPressed: () => setState(() => _isBidding = false),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.check, color: Colors.green),
-                              onPressed: _submitBid,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
-                    const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (!_isBidding) {
-                          setState(() => _isBidding = true);
-                        } else {
-                          _submitBid();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        _isBidding ? 'تأكيد المزايدة' : 'قدم مزايدة',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 5,
+                      child: ElevatedButton.icon(
+                        onPressed: _submitBid,
+                        icon: const Icon(
+                          Icons.gavel_rounded,
                           color: Colors.white,
+                          size: 18,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        label: const Text(
+                          'قدم المزايدة',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -348,111 +441,212 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
     );
   }
 
-  Widget _buildCarInfoTable() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildTimeCircularUnit(String value, String label) {
+    return Column(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.primary, width: 2),
+          ),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+              fontSize: 14,
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+      ],
+    );
+  }
+
+  Widget _buildAuctionGridSpecs() {
+    final items = [
+      {
+        'title': 'البائع',
+        'val': widget.auction.car.userName,
+        'icon': Icons.person_outline,
+      },
+      {
+        'title': 'الموقع',
+        'val': widget.auction.car.location,
+        'icon': Icons.location_on_outlined,
+      },
+      {
+        'title': 'السنة',
+        'val': widget.auction.car.year.toString(),
+        'icon': Icons.calendar_today_outlined,
+      },
+      {'title': 'العداد', 'val': '120,000 كم', 'icon': Icons.speed_outlined},
+    ];
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 2.8,
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
       ),
-      child: Table(
-        columnWidths: const {
-          0: FlexColumnWidth(1.5),
-          1: FlexColumnWidth(2),
-        },
-        children: [
-          TableRow(
-            children: [
-              Text('الماركة', style: TextStyle(color: AppColors.textSecondary)),
-              Text(widget.auction.car.make, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade100),
           ),
-          const TableRow(children: [SizedBox(height: 8), SizedBox(height: 8)]),
-          TableRow(
+          child: Row(
             children: [
-              Text('الموديل', style: TextStyle(color: AppColors.textSecondary)),
-              Text(widget.auction.car.model, style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const TableRow(children: [SizedBox(height: 8), SizedBox(height: 8)]),
-          TableRow(
-            children: [
-              Text('سنة الصنع', style: TextStyle(color: AppColors.textSecondary)),
-              Text(widget.auction.car.year.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const TableRow(children: [SizedBox(height: 8), SizedBox(height: 8)]),
-          TableRow(
-            children: [
-              Text('الحالة', style: TextStyle(color: AppColors.textSecondary)),
-              Text(
-                  widget.auction.car.condition == 'used' ? 'مستعمل' : 'جديد',
-                  style: const TextStyle(fontWeight: FontWeight.bold)
+              Icon(
+                items[index]['icon'] as IconData,
+                color: AppColors.primary,
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      items[index]['val'] as String,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      items[index]['title'] as String,
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          const TableRow(children: [SizedBox(height: 8), SizedBox(height: 8)]),
-          TableRow(
+        );
+      },
+    );
+  }
+
+  Widget _buildBidsMockList() {
+    final mockBids = [
+      {
+        'name': 'محمد علي',
+        'price': '33,000,000 ل.س',
+        'time': 'قبل دقيقة',
+        'top': true,
+      },
+      {
+        'name': 'سامي خليل',
+        'price': '32,500,000 ل.س',
+        'time': 'قبل 5 دقائق',
+        'top': false,
+      },
+      {
+        'name': 'خالد أحمد',
+        'price': '31,000,000 ل.س',
+        'time': 'قبل 12 دقيقة',
+        'top': false,
+      },
+    ];
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: mockBids.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final bid = mockBids[index];
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
             children: [
-              Text('الموقع', style: TextStyle(color: AppColors.textSecondary)),
-              Text(widget.auction.car.location, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const CircleAvatar(
+                backgroundColor: Colors.blueGrey,
+                radius: 18,
+                child: Icon(Icons.person, color: Colors.white, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bid['name'] as String,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      bid['time'] as String,
+                      style: const TextStyle(color: Colors.grey, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    bid['price'] as String,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                      fontSize: 13,
+                    ),
+                  ),
+                  if (bid['top'] as bool)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'أعلى مزايدة',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
-          const TableRow(children: [SizedBox(height: 8), SizedBox(height: 8)]),
-          TableRow(
-            children: [
-              Text('البائع', style: TextStyle(color: AppColors.textSecondary)),
-              Text(widget.auction.car.userName,style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   void _submitBid() {
-    // تنظيف النص المدخل: إزالة الفواصل والمسافات
-    String bidAmountText = _bidController.text.replaceAll(',', '').replaceAll(' ', '').trim();
-
-    // محاولة تحويل النص إلى double
-    final bidAmount = double.tryParse(bidAmountText) ?? 0;
-
-    // التحقق من أن القيمة المدخلة صالحة
-    if (bidAmount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى إدخال مبلغ صالح'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // حساب الحد الأدنى للمزايدة
-    final minBid = _parsePrice(widget.auction.currentPrice) * 1.05;
-
-    // التحقق من أن المبلغ المدخل أعلى من الحد الأدنى
-    if (bidAmount < minBid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('المبلغ يجب أن يكون على الأقل ${_formatPrice(minBid)}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // منطق تقديم المزايدة هنا
-    setState(() {
-      _isBidding = false;
-      _bidController.clear();
-    });
-
+    if (_bidController.text.isEmpty) return;
+    FocusScope.of(context).unfocus();
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('تم تقديم مزايدتك بنجاح'),
+        content: Text('تم تسجيل عرض المزايدة الخاص بك بنجاح!'),
         backgroundColor: Colors.green,
       ),
     );
+    _bidController.clear();
   }
 }

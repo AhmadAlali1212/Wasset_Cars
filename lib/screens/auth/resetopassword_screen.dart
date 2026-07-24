@@ -1,5 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/services/auth_serivces.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
 
@@ -14,11 +16,13 @@ class ResetPasswordScreen extends StatefulWidget {
 
 class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _otpController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  final AuthService _authService = AuthService();
 
   Future<void> _resetPassword() async {
     if (_formKey.currentState!.validate()) {
@@ -31,18 +35,45 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
       setState(() => _isLoading = true);
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+      try {
+        await _authService.verifyPasswordOtp(
+          email: widget.email,
+          otp: _otpController.text,
+        );
 
-      setState(() => _isLoading = false);
+        await _authService.resetPassword(
+          email: widget.email,
+          otp: _otpController.text,
+          password: _passwordController.text,
+          passwordConfirmation: _confirmPasswordController.text,
+        );
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم تغيير كلمة المرور بنجاح')),
-      );
+        if (!mounted) {
+          return;
+        }
 
-      // Navigate back to login
-      Navigator.popUntil(context, (route) => route.isFirst);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تغيير كلمة المرور بنجاح')),
+        );
+
+        Navigator.popUntil(context, (route) => route.isFirst);
+      } on DioException catch (e) {
+        final String message =
+            ((e.response?.data is Map
+                    ? (e.response!.data as Map)['message']
+                    : null)
+                ?.toString()) ??
+            'حدث خطأ أثناء إعادة تعيين كلمة المرور';
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -101,6 +132,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    CustomTextField(
+                      controller: _otpController,
+                      hint: 'أدخل رمز OTP',
+                      icon: Icons.pin_outlined,
+                      keyboardType: TextInputType.number,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'الرجاء إدخال رمز OTP';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
                     CustomTextField(
                       controller: _passwordController,
                       hint: 'أدخل كلمة المرور الجديدة',
@@ -174,6 +218,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   void dispose() {
+    _otpController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();

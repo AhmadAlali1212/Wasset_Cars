@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:mators_car/screens/auth/resetopassword_screen.dart';
+import 'package:mators_car/services/auth_serivces.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
@@ -15,24 +17,45 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   bool _isLoading = false;
+  final AuthService _authService = AuthService();
 
-  Future<void> _sendResetLink() async {
+  Future<void> _sendResetOtp() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+      try {
+        await _authService.requestPasswordResetOtp(
+          email: _emailController.text,
+        );
 
-      setState(() => _isLoading = false);
+        if (!mounted) {
+          return;
+        }
 
-      // Navigate to reset password screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => ResetPasswordScreen(email: _emailController.text),
-        ),
-      );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => ResetPasswordScreen(email: _emailController.text),
+          ),
+        );
+      } on DioException catch (e) {
+        final String message =
+            ((e.response?.data is Map
+                    ? (e.response!.data as Map)['message']
+                    : null)
+                ?.toString()) ??
+            'حدث خطأ أثناء إرسال رمز التحقق';
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(message)));
+        }
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 
@@ -60,7 +83,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF3F7FA), // لون دائرة ناعم خلف الأيقونة
+                    color: const Color(
+                      0xFFF3F7FA,
+                    ), // لون دائرة ناعم خلف الأيقونة
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -105,7 +130,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                 return 'الرجاء إدخال البريد الإلكتروني';
+                          return 'الرجاء إدخال البريد الإلكتروني';
                         }
                         if (!RegExp(r'^.+@.+\..+$').hasMatch(value)) {
                           return 'البريد الإلكتروني غير صالح';
@@ -116,9 +141,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 32),
                     AuthButton(
                       text: 'إرسال رابط التعيين',
-                      onPressed: _sendResetLink,
+                      onPressed: _sendResetOtp,
                       isLoading: _isLoading,
-                      gradient: AppColors.primaryGradient, 
+                      gradient: AppColors.primaryGradient,
                     ),
                     const SizedBox(height: 24),
                     TextButton(

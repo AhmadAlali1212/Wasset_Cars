@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:mators_car/screens/auth/login_screen.dart';
-import 'package:mators_car/screens/auth/storeg/auth_storage.dart';
+import 'package:mators_car/screens/auth/verification_screen.dart';
 import 'package:mators_car/services/auth_serivces.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
@@ -24,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _acceptTerms = false;
+  bool _obscurePassword = true;
 
   final AuthService _authService = AuthService();
 
@@ -33,8 +34,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return 'فرد';
       case 2:
         return 'شركة';
-      case 3:
-        return 'ورشة';
       default:
         return '';
     }
@@ -52,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _isLoading = true);
 
       try {
-        final response = await _authService.register(
+        await _authService.register(
           name: _nameController.text,
           email: _emailController.text,
           phoneNumber: _phoneController.text,
@@ -61,33 +60,72 @@ class _RegisterScreenState extends State<RegisterScreen> {
           accountTypeId: widget.accountTypeId,
         );
 
-        final token = response['access_token'];
-        await AuthStorage.saveToken(token);
+        if (!mounted) {
+          return;
+        }
 
-        Navigator.pushReplacementNamed(
+        Navigator.pushReplacement(
           context,
-          widget.accountTypeId == 1 ? '/home' : '/verification',
+          MaterialPageRoute(
+            builder:
+                (context) => VerificationScreen(
+                  accountTypeId: widget.accountTypeId,
+                  email: _emailController.text,
+                ),
+          ),
         );
       } on DioException catch (e) {
         String errorMessage = 'حدث خطأ أثناء التسجيل';
-        if (e.response?.data != null) {
-          if (e.response?.data['errors'] != null) {
-            errorMessage = e.response?.data['errors'].entries
-                .map((e) => '${e.value.join(', ')}')
-                .join('\n');
-          } else if (e.response?.data['message'] != null) {
-            errorMessage = e.response?.data['message'];
+        final responseData = e.response?.data;
+        final dioMessage = e.message?.toString().trim();
+        final dioError = e.error?.toString().trim();
+
+        if (dioMessage != null && dioMessage.isNotEmpty) {
+          errorMessage = dioMessage;
+        } else if (dioError != null && dioError.isNotEmpty) {
+          errorMessage = dioError;
+        } else if (responseData is Map && responseData['errors'] is Map) {
+          final errors = responseData['errors'] as Map;
+          final lines =
+              errors.entries.map((entry) {
+                final value = entry.value;
+                if (value is List) {
+                  return '${entry.key}: ${value.join(', ')}';
+                }
+                return '${entry.key}: ${value.toString()}';
+              }).toList();
+          if (lines.isNotEmpty) {
+            errorMessage = lines.join('\n');
           }
+        } else if (responseData is Map && responseData['message'] != null) {
+          errorMessage = responseData['message'].toString();
+        } else if (responseData is String && responseData.isNotEmpty) {
+          errorMessage = responseData;
+        } else if (e.toString().isNotEmpty) {
+          errorMessage = e.toString();
+        }
+        if (!mounted) {
+          return;
         }
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(errorMessage)));
       } catch (e) {
+        if (!mounted) {
+          return;
+        }
+        final message = e.toString().replaceFirst('Exception: ', '').trim();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ غير متوقع: ${e.toString()}')),
+          SnackBar(
+            content: Text(
+              message.isNotEmpty ? message : 'حدث خطأ غير متوقع أثناء التسجيل',
+            ),
+          ),
         );
       } finally {
-        setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -213,7 +251,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       if (value == null || value.isEmpty) {
                         return 'الرجاء إدخال رقم الهاتف';
                       }
-                      if (value.length < 8) {
+                      if (value.length < 10) {
                         return 'رقم الهاتف غير صالح';
                       }
                       return null;
@@ -236,7 +274,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     icon: Icons.lock_outline,
 
                     hint: 'ادخل كلمة المرور',
-                    isPassword: true,
+                                          isPassword: _obscurePassword,
+
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: const Color(0xFF9CA3AF),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'الرجاء إدخال كلمة المرور';
@@ -264,7 +316,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     icon: Icons.lock_outline,
 
                     hint: 'اعِد إدخال كلمة المرور',
-                    isPassword: true,
+                                        isPassword: _obscurePassword,
+
+                        suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: const Color(0xFF9CA3AF),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'الرجاء تأكيد كلمة المرور';
@@ -277,7 +343,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // تنبيه لمراجعة المستندات (للشركات والورش)
+                  // تنبيه لمراجعة المستندات (للشركات)
                   if (widget.accountTypeId != 1) ...[
                     Container(
                       padding: const EdgeInsets.all(12),
