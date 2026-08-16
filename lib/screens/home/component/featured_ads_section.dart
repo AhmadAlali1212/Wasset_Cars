@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/sellCars/ad_detail_screen.dart';
 import 'package:mators_car/ulits/colors.dart';
@@ -46,11 +47,17 @@ class FeaturedAdsSection extends StatelessWidget {
           // Car Image
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Image.network(
-              ad.car.images[0],
+            child: CachedNetworkImage(
+              imageUrl: ad.car.images[0],
               width: double.infinity,
               height: double.infinity,
               fit: BoxFit.cover,
+              memCacheWidth: 500,
+              placeholder: (context, url) => Container(color: Colors.grey.shade200),
+              errorWidget: (context, url, error) => Container(
+                color: Colors.grey.shade200,
+                child: const Icon(Icons.directions_car),
+              ),
             ),
           ),
 

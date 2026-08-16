@@ -258,7 +258,7 @@ class MockData {
     return [
       Auction(
         id: 1,
-        adId: 1,
+        carId: 1,
         startingPrice: "30,000,000",
         currentPrice: "32,500,000",
         startTime: DateTime.now().subtract(const Duration(days: 2)),
@@ -295,7 +295,7 @@ class MockData {
       ),
       Auction(
         id: 2,
-        adId: 2,
+        carId: 2,
         startingPrice: "15,000,000",
         currentPrice: "16,750,000",
         startTime: DateTime.now().subtract(const Duration(days: 1)),

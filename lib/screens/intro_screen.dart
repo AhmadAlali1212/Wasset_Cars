@@ -24,7 +24,7 @@ class IntroScreen extends StatelessWidget {
 
               // شعار/عنوان التطبيق بالعربية (Wasset CARs - "واسط كارز")
               const Text(
-                'وسيط كارز', // أو 'Wasset CARs' بالعربية
+                'وسيطك كارز', // أو 'Wasset CARs' بالعربية
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,

@@ -1,10 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+<!-- مطلوب على أندرويد 13+ لإظهار أي إشعار نظام، بما فيها إشعارات FCM -->
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="mators_car"
+        android:label="Wassetak Cars"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+         <meta-data android:name="com.google.android.geo.API_KEY"
+               android:value="AIzaSyDp6V6oEp5tjrRU_1SH0ixg8d4Msli6Ttc"/>
+        <!-- الأيقونة الافتراضية لإشعارات FCM حين يكون التطبيق مغلقاً بالكامل
+             (لا يوجد Dart يعمل ليختار الأيقونة، فـ Android يحتاج قيمة ثابتة
+             هنا). يفضّل استبدالها بأيقونة أبيض-شفاف مخصصة لاحقاً
+             (mipmap/ic_launcher تعمل مؤقتاً لكنها قد تظهر بخلفية مربّعة). -->
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon"
+              android:resource="@mipmap/ic_launcher"/>
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id"
+              android:value="high_importance_channel"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -42,6 +54,14 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <intent>
+        <action android:name="android.intent.action.DIAL" />
+        <data android:scheme="tel" />
+        </intent>
+        <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="https" />
         </intent>
     </queries>
 </manifest>

@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/models/ad_model.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/ulits/contact_launcher.dart';
+import 'package:mators_car/screens/adsCar/sellCars/ad_map_screen.dart';
+import 'package:mators_car/screens/company/company_public_profile_screen.dart';
+import 'package:mators_car/services/ads_service.dart';
+import 'package:mators_car/widgets/seller_rating_badge.dart';
 import 'package:mators_car/widgets/section_header.dart';
 
 class AdDetailScreen extends StatefulWidget {
@@ -12,8 +18,34 @@ class AdDetailScreen extends StatefulWidget {
 }
 
 class _AdDetailScreenState extends State<AdDetailScreen> {
+  final AdsService _adsService = AdsService();
   bool _isFavorite = false;
   int _currentImageIndex = 0;
+  late Ad _ad;
+
+  @override
+  void initState() {
+    super.initState();
+    _ad = widget.ad;
+    _refreshAdDetails();
+  }
+
+  // إعادة جلب أحدث بيانات الإعلان من الخادم عبر GET /ads/{id}
+  // (تُبقي بيانات القائمة كعرض فوري، ثم تُحدَّث بأحدث نسخة عند توفرها)
+  Future<void> _refreshAdDetails() async {
+    try {
+      final fresh = await _adsService.getAdDetails(_ad.id);
+      if (!mounted || fresh.isEmpty) return;
+      final freshAd = Ad.fromJson(fresh);
+      // احتياط: إن لم تتضمن استجابة التفاصيل كائن السيارة المتداخل لأي
+      // سبب، لا نستبدل بيانات السيارة الجيدة القادمة من شاشة القائمة.
+      setState(() {
+        _ad = freshAd.car.id != 0 ? freshAd : freshAd.withCar(_ad.car);
+      });
+    } catch (_) {
+      // في حال فشل التحديث نكتفي بعرض البيانات المتوفرة مسبقاً من القائمة
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +74,14 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم تجهيز رابط الإعلان للمشاركة'),
+                  backgroundColor: AppColors.primary,
+                ),
+              );
+            },
           ),
           IconButton(
             icon: Icon(
@@ -65,19 +104,25 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                     SizedBox(
                       height: 260,
                       child: PageView.builder(
-                        itemCount: widget.ad.car.images.length,
+                        itemCount: _ad.car.images.length,
                         onPageChanged:
                             (index) =>
                                 setState(() => _currentImageIndex = index),
                         itemBuilder: (context, index) {
-                          final imageUrl = widget.ad.car.images[index];
+                          final imageUrl = _ad.car.images[index];
                           return imageUrl.isNotEmpty
-                              ? Image.network(
-                                imageUrl,
+                              ? CachedNetworkImage(
+                                imageUrl: imageUrl,
                                 fit: BoxFit.cover,
                                 width: double.infinity,
-                                errorBuilder:
-                                    (context, error, stackTrace) => Image.asset(
+                                memCacheWidth: 900,
+                                placeholder:
+                                    (context, url) => Container(
+                                      height: 260,
+                                      color: Colors.grey.shade200,
+                                    ),
+                                errorWidget:
+                                    (context, url, error) => Image.asset(
                                       'assets/image/intro.jpg',
                                       fit: BoxFit.cover,
                                       width: double.infinity,
@@ -100,11 +145,11 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withAlpha((0.5 * 255).round()),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '${_currentImageIndex + 1} / ${widget.ad.car.images.length}',
+                          '${_currentImageIndex + 1} / ${_ad.car.images.length}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -124,28 +169,39 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${widget.ad.car.make} ${widget.ad.car.model} ${widget.ad.car.year}',
+                            '${_ad.car.make} ${_ad.car.model} ${_ad.car.year}',
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.location_on_outlined,
-                                size: 16,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                widget.ad.car.location,
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AdMapScreen(ad: _ad),
                                 ),
-                              ),
-                            ],
+                              );
+                            },
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_outlined,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _ad.car.location,
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -159,7 +215,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '${widget.ad.price} ل.س',
+                        '${_ad.price} ل.س',
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -175,7 +231,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                       const SectionHeader(title: 'الوصف'),
                       const SizedBox(height: 8),
                       Text(
-                        widget.ad.car.description,
+                        _ad.car.description,
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey.shade700,
@@ -195,74 +251,68 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         ),
                         child: Row(
                           children: [
-                            const CircleAvatar(
+                            CircleAvatar(
                               radius: 26,
-                              backgroundImage: NetworkImage(
-                                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200',
+                              backgroundColor: AppColors.primary.withAlpha(
+                                (0.1 * 255).round(),
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                color: AppColors.primary,
+                                size: 28,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Column(
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder:
+                                          (_) => CompanyPublicProfileScreen(
+                                            company: {
+                                              'id': _ad.userId,
+                                              'name': _ad.contactName,
+                                              'phone': _ad.contactPhone,
+                                            },
+                                          ),
+                                    ),
+                                  );
+                                },
+                                child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    widget.ad.car.userName.isNotEmpty
-                                        ? widget.ad.car.userName
-                                        : 'أحمد محمد',
+                                    _ad.contactName.isNotEmpty
+                                        ? _ad.contactName
+                                        : 'مستخدم Syria Motor',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 15,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  const Row(
-                                    children: [
-                                      Icon(
-                                        Icons.star,
-                                        color: Colors.amber,
-                                        size: 16,
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        '4.9 (128 تقييم)',
-                                        style: TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.verified,
-                                        color: Colors.green,
-                                        size: 14,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'موثق',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                          fontSize: 11,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                  SellerRatingBadge(userId: _ad.userId),
                                 ],
+                              ),
                               ),
                             ),
                             IconButton(
-                              onPressed: () => _openActionSheet('محادثة'),
+                              onPressed:
+                                  () => ContactLauncher.whatsapp(
+                                    context,
+                                    _ad.contactPhone,
+                                    message:
+                                        'مرحباً، أنا مهتم بإعلان ${_ad.car.make} ${_ad.car.model} ${_ad.car.year} على تطبيق Syria Motor.',
+                                  ),
                               icon: Icon(
                                 Icons.chat_bubble_outline,
                                 color: AppColors.primary,
                               ),
                               style: IconButton.styleFrom(
-                                backgroundColor: AppColors.primary.withOpacity(
-                                  0.08,
+                                backgroundColor: AppColors.primary.withAlpha(
+                                  (0.08 * 255).round(),
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -271,14 +321,18 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                             ),
                             const SizedBox(width: 8),
                             IconButton(
-                              onPressed: () => _openActionSheet('اتصال مجاني'),
+                              onPressed:
+                                  () => ContactLauncher.call(
+                                    context,
+                                    _ad.contactPhone,
+                                  ),
                               icon: Icon(
                                 Icons.phone_outlined,
                                 color: AppColors.primary,
                               ),
                               style: IconButton.styleFrom(
-                                backgroundColor: AppColors.primary.withOpacity(
-                                  0.08,
+                                backgroundColor: AppColors.primary.withAlpha(
+                                  (0.08 * 255).round(),
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -303,24 +357,62 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
             child: Container(
               padding: const EdgeInsets.all(16),
               color: Colors.white,
-              child: ElevatedButton.icon(
-                onPressed: () => _openActionSheet('اتصال مباشر بالبائع'),
-                icon: const Icon(Icons.phone_in_talk, color: Colors.white),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  minimumSize: const Size(double.infinity, 52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed:
+                          () => ContactLauncher.call(
+                            context,
+                            _ad.contactPhone,
+                          ),
+                      icon: const Icon(
+                        Icons.phone_in_talk,
+                        color: Colors.white,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      label: const Text(
+                        'اتصل بالبائع',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                label: const Text(
-                  'اتصل بالبائع',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _handlePurchase,
+                      icon: const Icon(
+                        Icons.shopping_cart,
+                        color: Colors.white,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1F7A3C),
+                        minimumSize: const Size(double.infinity, 52),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      label: const Text(
+                        'شراء الآن',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -333,20 +425,27 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     final specs = [
       {
         'title': 'نوع الوقود',
-        'val': 'بنزين',
+        'val': _ad.car.fuelType ?? 'غير محدد',
         'icon': Icons.local_gas_station_outlined,
       },
       {
         'title': 'ناقل الحركة',
-        'val': 'أوتوماتيك',
+        'val': _ad.car.transmission ?? 'غير محدد',
         'icon': Icons.settings_input_component_outlined,
       },
       {
         'title': 'السنة',
-        'val': widget.ad.car.year.toString(),
+        'val': _ad.car.year.toString(),
         'icon': Icons.calendar_today_outlined,
       },
-      {'title': 'العداد', 'val': '120,000 كم', 'icon': Icons.speed_outlined},
+      {
+        'title': 'العداد',
+        'val':
+            _ad.car.mileage != null
+                ? '${_ad.car.mileage} كم'
+                : 'غير محدد',
+        'icon': Icons.speed_outlined,
+      },
     ];
     return GridView.builder(
       shrinkWrap: true,
@@ -391,25 +490,17 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     );
   }
 
-  void _openActionSheet(String actionName) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder:
-          (context) => Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'جاري فتح $actionName الخاص بالبائع لتسهيل العملية المباشرة.',
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ],
-            ),
-          ),
+  // لا يوجد API لإتمام عملية شراء فعلية داخل التطبيق، فالنموذج التجاري هنا
+  // قائم على التواصل المباشر مع البائع. لذلك "شراء الآن" يفتح محادثة واتساب
+  // برسالة جاهزة تعبّر عن نية الشراء، بدل شاشة "نجاح" وهمية غير مرتبطة
+  // بأي عملية حقيقية.
+  void _handlePurchase() {
+    ContactLauncher.whatsapp(
+      context,
+      _ad.contactPhone,
+      message:
+          'مرحباً، أرغب بشراء ${_ad.car.make} ${_ad.car.model} ${_ad.car.year} '
+          'المعروضة بسعر ${_ad.price} ل.س على تطبيق Syria Motor.',
     );
   }
 }

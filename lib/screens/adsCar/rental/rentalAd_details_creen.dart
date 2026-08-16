@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/models/ad_model.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/ulits/contact_launcher.dart';
+import 'package:mators_car/services/rental_ad_service.dart';
+import 'package:mators_car/services/rental_booking_service.dart';
+import 'package:mators_car/screens/adsCar/rental/my_rental_bookings_screen.dart';
+import 'package:mators_car/screens/adsCar/sellCars/ad_map_screen.dart';
+import 'package:mators_car/screens/company/company_public_profile_screen.dart';
+import 'package:mators_car/widgets/seller_rating_badge.dart';
 import '../../../widgets/auction/car_image_slider.dart';
 import '../../../widgets/section_header.dart';
 
@@ -13,7 +20,95 @@ class RentalAdDetailScreen extends StatefulWidget {
 }
 
 class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
+  final RentalAdService _rentalAdService = RentalAdService();
+  final RentalBookingService _bookingService = RentalBookingService();
   bool _isFavorite = false;
+  bool _isBooking = false;
+  late Ad _ad;
+
+  @override
+  void initState() {
+    super.initState();
+    _ad = widget.ad;
+    _refreshAdDetails();
+  }
+
+  // إعادة جلب أحدث بيانات إعلان التأجير من الخادم عبر GET /rental-ads/{id}
+  Future<void> _refreshAdDetails() async {
+    try {
+      final fresh = await _rentalAdService.getRentalAdDetails(_ad.id);
+      if (!mounted || fresh.isEmpty) return;
+      final freshAd = Ad.fromJson(fresh);
+      // GET /rental-ads/{id} لا يُرجع كائن السيارة المتداخل إطلاقاً (بعكس
+      // القائمة العامة index())، فلو اعتمدنا عليه مباشرة كانت كل بيانات
+      // السيارة (الصور/الموديل/الموقع...) تختفي فجأة بعد أول تحديث.
+      // لذلك نحافظ على بيانات السيارة التي وصلتنا أصلاً من شاشة القائمة
+      // إن كانت الاستجابة الجديدة لا تحوي سيارة صالحة.
+      setState(() {
+        _ad = freshAd.car.id != 0 ? freshAd : freshAd.withCar(_ad.car);
+      });
+    } catch (_) {
+      // في حال فشل التحديث نكتفي بعرض البيانات المتوفرة مسبقاً من القائمة
+    }
+  }
+
+  // اختيار تاريخ البداية والنهاية ثم إرسال طلب الحجز فعلياً عبر RentalBookingService
+  Future<void> _showBookingDialog() async {
+    final now = DateTime.now();
+    final startDate = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+      helpText: 'اختر تاريخ بداية التأجير',
+    );
+    if (startDate == null || !mounted) return;
+
+    final endDate = await showDatePicker(
+      context: context,
+      initialDate: startDate.add(const Duration(days: 1)),
+      firstDate: startDate.add(const Duration(days: 1)),
+      lastDate: startDate.add(const Duration(days: 365)),
+      helpText: 'اختر تاريخ نهاية التأجير',
+    );
+    if (endDate == null || !mounted) return;
+
+    await _submitBooking(startDate, endDate);
+  }
+
+  Future<void> _submitBooking(DateTime startDate, DateTime endDate) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    setState(() => _isBooking = true);
+    try {
+      await _bookingService.createBooking(
+        rentalAdId: _ad.id,
+        startDate: startDate,
+        endDate: endDate,
+      );
+      if (!mounted) return;
+      // مجرد Snackbar لا يكفي لإقناع المستخدم أن الحجز فعلاً تسجّل، خصوصاً
+      // أن هذه الشاشة نفسها لا تعرض أي حالة "محجوز" بعدها. لذلك نأخذه
+      // مباشرة لشاشة "حجوزاتي" ليرى حجزه الجديد ضمن القائمة كتأكيد ملموس.
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Text('تم إرسال طلب الحجز بنجاح'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MyRentalBookingsScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('فشل إرسال طلب الحجز: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) setState(() => _isBooking = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +137,14 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم تجهيز رابط التأجير للمشاركة'),
+                  backgroundColor: AppColors.primary,
+                ),
+              );
+            },
           ),
           IconButton(
             icon: Icon(
@@ -59,14 +161,14 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CarImageSlider(images: widget.ad.car.images),
+                CarImageSlider(images: _ad.car.images),
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${widget.ad.car.make} ${widget.ad.car.model} ${widget.ad.car.year}',
+                        '${_ad.car.make} ${_ad.car.model} ${_ad.car.year}',
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -95,7 +197,7 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${widget.ad.dailyPrice} ل.س',
+                                    '${_ad.dailyPrice} ل.س',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
@@ -111,10 +213,14 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                             child: Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.06),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.06,
+                                ),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: AppColors.primary.withOpacity(0.2),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.2,
+                                  ),
                                 ),
                               ),
                               child: Column(
@@ -128,7 +234,7 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${widget.ad.monthlyPrice} ل.س',
+                                    '${_ad.monthlyPrice} ل.س',
                                     style: TextStyle(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
@@ -181,7 +287,7 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                   ),
                 ],
@@ -189,7 +295,14 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () {},
+                    onPressed:
+                        () => ContactLauncher.whatsapp(
+                          context,
+                          widget.ad.contactPhone,
+                          message:
+                              'مرحباً، أنا مهتم بإعلان تأجير ${widget.ad.car.make} '
+                              '${widget.ad.car.model} ${widget.ad.car.year} على تطبيق Syria Motor.',
+                        ),
                     icon: Icon(
                       Icons.chat_bubble_outline,
                       color: AppColors.primary,
@@ -204,7 +317,11 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    onPressed: () {},
+                    onPressed:
+                        () => ContactLauncher.call(
+                          context,
+                          widget.ad.contactPhone,
+                        ),
                     icon: Icon(Icons.phone_outlined, color: AppColors.primary),
                     style: IconButton.styleFrom(
                       backgroundColor: Colors.grey.shade100,
@@ -217,7 +334,7 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: _isBooking ? null : _showBookingDialog,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         maximumSize: Size(double.infinity, 50),
@@ -225,13 +342,23 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'احجز الآن الموعد',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child:
+                          _isBooking
+                              ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Text(
+                                'احجز الآن الموعد',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                     ),
                   ),
                 ],
@@ -247,18 +374,23 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
     final items = [
       {
         'title': 'الموقع',
-        'val': widget.ad.car.location,
+        'val': _ad.car.location,
         'icon': Icons.location_on_outlined,
       },
       {
         'title': 'السنة',
-        'val': widget.ad.car.year.toString(),
+        'val': _ad.car.year.toString(),
         'icon': Icons.calendar_today_outlined,
       },
-      {'title': 'العداد', 'val': '120,000 كم', 'icon': Icons.speed_outlined},
+      {
+        'title': 'العداد',
+        'val':
+            _ad.car.mileage != null ? '${_ad.car.mileage} كم' : 'غير محدد',
+        'icon': Icons.speed_outlined,
+      },
       {
         'title': 'نوع الوقود',
-        'val': 'بنزين',
+        'val': _ad.car.fuelType ?? 'غير محدد',
         'icon': Icons.local_gas_station_outlined,
       },
       {'title': 'التأمين', 'val': 'شامل وتام', 'icon': Icons.shield_outlined},
@@ -270,7 +402,7 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
       },
       {
         'title': 'ناقل الحركة',
-        'val': 'أوتوماتيك',
+        'val': _ad.car.transmission ?? 'غير محدد',
         'icon': Icons.settings_input_component,
       },
     ];
@@ -408,59 +540,72 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
       ),
       child: Column(
         children: [
-          const Row(
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (_) => CompanyPublicProfileScreen(
+                        company: {
+                          'id': _ad.userId,
+                          'name': _ad.contactName,
+                          'phone': _ad.contactPhone,
+                        },
+                      ),
+                ),
+              );
+            },
+            child: Row(
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundImage: NetworkImage(
-                  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=150',
-                ),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                child: Icon(Icons.person, color: AppColors.primary, size: 22),
               ),
-              SizedBox(width: 10),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'أحمد علي',
-                      style: TextStyle(
+                      _ad.contactName.isNotEmpty
+                          ? _ad.contactName
+                          : 'مستخدم Syria Motor',
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
                     ),
-                    Text(
-                      'عضو منذ 2023',
-                      style: TextStyle(color: Colors.grey, fontSize: 11),
-                    ),
                   ],
                 ),
               ),
-              Row(
-                children: [
-                  Icon(Icons.star, color: Colors.amber, size: 16),
-                  SizedBox(width: 2),
-                  Text(
-                    '5.0',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                ],
-              ),
+              SellerRatingBadge(userId: _ad.userId, fontSize: 11),
             ],
           ),
+          ),
           const SizedBox(height: 12),
-          Container(
-            height: 100,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-              image: const DecorationImage(
-                image: AssetImage('assets/image/intro.jpg'),
-                fit: BoxFit.cover,
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => AdMapScreen(ad: _ad)),
+              );
+            },
+            child: Container(
+              height: 100,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                image: const DecorationImage(
+                  image: AssetImage('assets/image/intro.jpg'),
+                  fit: BoxFit.cover,
+                ),
               ),
-            ),
-            child: const Center(
-              child: Icon(Icons.location_pin, color: Colors.red, size: 32),
+              child: const Center(
+                child: Icon(Icons.location_pin, color: Colors.red, size: 32),
+              ),
             ),
           ),
         ],

@@ -1,4 +1,6 @@
 // models/workshop_model.dart
+import 'package:mators_car/ulits/constans.dart';
+
 class Workshop {
   final int id;
   final int userId;
@@ -10,6 +12,7 @@ class Workshop {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool featured;
+  final String? phone;
 
   Workshop({
     required this.id,
@@ -22,6 +25,7 @@ class Workshop {
     required this.createdAt,
     required this.updatedAt,
     this.featured = false,
+    this.phone,
   });
   Map<String, dynamic> toJson() {
     return {
@@ -38,6 +42,19 @@ class Workshop {
     };
   }
   factory Workshop.fromJson(Map<String, dynamic> json) {
+    String? extractPhone() {
+      final direct = json['phone_number'] ?? json['phone'];
+      if (direct != null && direct.toString().trim().isNotEmpty) {
+        return direct.toString();
+      }
+      final userObj = json['user'];
+      if (userObj is Map) {
+        final p = userObj['phone_number'] ?? userObj['phone'];
+        if (p != null && p.toString().trim().isNotEmpty) return p.toString();
+      }
+      return null;
+    }
+
     return Workshop(
       id: json['id'],
       userId: json['user_id'],
@@ -45,12 +62,15 @@ class Workshop {
       description: json['description'],
       location: json['location'],
       services: List<String>.from(json['services']?.map((x) => x.toString()) ?? []),
-      images: List<String>.from(json['images'] ?? []),
+      images: List<String>.from(
+        (json['images'] ?? []).map(
+          (x) => AppConstants.resolveImageUrl(x) ?? x.toString(),
+        ),
+      ),
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
       featured: json['featured'] ?? false,
-
-
+      phone: extractPhone(),
     );
   }
 }

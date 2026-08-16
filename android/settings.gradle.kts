@@ -18,8 +18,12 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.7.0" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
+    id("com.android.application") version "8.9.1" apply false
+    id("org.jetbrains.kotlin.android") version "2.3.0" apply false
+    // مطلوب لقراءة android/app/google-services.json وربط التطبيق بمشروع
+    // Firebase (لازم لعمل FCM). النسخة المطلوبة فعلياً تُثبَّت تلقائياً
+    // من pubspec.yaml عبر حزمة firebase_core، لكن يجب إعلانها هنا أيضاً.
+    id("com.google.gms.google-services") version "4.4.2" apply false
 }
 
 include(":app")

@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/screens/individual/individual_add_car_screen.dart';
+import 'package:mators_car/screens/individual/individual_ads_screen.dart';
 import 'package:mators_car/screens/individual/individual_inventory_screen.dart';
+import 'package:mators_car/screens/individual/individual_profile_screen.dart';
 import 'package:mators_car/screens/individual/individual_wallet_screen.dart';
+import 'package:mators_car/screens/auction/my_auctions_screen.dart';
+import 'package:mators_car/screens/auction/my_bids_screen.dart';
+import 'package:mators_car/screens/adsCar/rental/my_rental_bookings_screen.dart';
+import 'package:mators_car/screens/company/following_companies_screen.dart';
 import 'package:mators_car/services/company_service.dart';
+import 'package:mators_car/ulits/constans.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -24,9 +32,10 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   }
 
   Future<Map<String, dynamic>> _loadSummary() async {
-    final cars = await _carService.getCompanyCars();
+    final myCars = await _carService.getMyCars();
+    final allCars = await _carService.getAllCars();
     final wallet = await _carService.getWallet();
-    return {'cars': cars, 'wallet': wallet};
+    return {'myCars': myCars, 'allCars': allCars, 'wallet': wallet};
   }
 
   @override
@@ -39,6 +48,20 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'الحساب',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const IndividualProfileScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _summaryFuture,
@@ -56,13 +79,22 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
             );
           }
 
-          final cars = List<Map<String, dynamic>>.from(
-            snapshot.data?['cars'] ?? [],
+          final myCars = List<Map<String, dynamic>>.from(
+            snapshot.data?['myCars'] ?? [],
+          );
+          final allCars = List<Map<String, dynamic>>.from(
+            snapshot.data?['allCars'] ?? [],
           );
           final wallet = Map<String, dynamic>.from(
             snapshot.data?['wallet'] ?? {},
           );
-          final balance = wallet['balance'] ?? wallet['current_balance'] ?? 0;
+          final walletData = wallet['wallet'];
+          final balanceRaw =
+              (walletData is Map ? walletData['available_balance'] : null) ??
+              wallet['balance'] ??
+              wallet['current_balance'] ??
+              0;
+          final balance = balanceRaw;
           final currency = wallet['currency'] ?? 'ل.س';
 
           return RefreshIndicator(
@@ -114,7 +146,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                   const SizedBox(height: 20),
                   _buildActionTile(
                     title: 'سياراتي',
-                    subtitle: '${cars.length} سيارة',
+                    subtitle: '${myCars.length} سيارة',
                     icon: Icons.directions_car_outlined,
                     onTap: () {
                       Navigator.push(
@@ -139,6 +171,71 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                     },
                   ),
                   _buildActionTile(
+                    title: 'إعلاناتي',
+                    subtitle: 'اعرض إعلاناتك المنشورة أو قيد الانتظار',
+                    icon: Icons.campaign_outlined,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const IndividualAdsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildActionTile(
+                    title: 'مزاداتي',
+                    subtitle: 'أنشئ مزاداً على إحدى سياراتك أو عدّله',
+                    icon: Icons.gavel_outlined,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MyAuctionsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildActionTile(
+                    title: 'مزايداتي',
+                    subtitle: 'المزادات التي زايدت عليها ونتيجتها',
+                    icon: Icons.emoji_events_outlined,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MyBidsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildActionTile(
+                    title: 'حجوزات التأجير',
+                    subtitle: 'الحجوزات التي قمت بها على سيارات مؤجَّرة',
+                    icon: Icons.event_available_outlined,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MyRentalBookingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildActionTile(
+                    title: 'الشركات التي أتابعها',
+                    subtitle: 'تابع أحدث سيارات وعروض معارضك المفضلة',
+                    icon: Icons.storefront_outlined,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const FollowingCompaniesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _buildActionTile(
                     title: 'أضف سيارة جديدة',
                     subtitle: 'أضف السيارة وسيتم مراجعتها',
                     icon: Icons.add_circle_outline,
@@ -151,13 +248,26 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       );
                     },
                   ),
+                  _buildActionTile(
+                    title: 'الحساب الشخصي',
+                    subtitle: 'تعديل بيانات الحساب وتسجيل الخروج',
+                    icon: Icons.person_outline,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const IndividualProfileScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 14),
                   const Text(
-                    'أحدث السيارات',
+                    'كل السيارات المتاحة',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   const SizedBox(height: 12),
-                  if (cars.isEmpty)
+                  if (allCars.isEmpty)
                     Container(
                       margin: const EdgeInsets.only(top: 16),
                       padding: const EdgeInsets.all(18),
@@ -166,23 +276,24 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                         borderRadius: BorderRadius.circular(18),
                       ),
                       child: const Text(
-                        'لم تتم إضافة سيارات بعد. استخدم زر "أضف سيارة جديدة" لبدء العملية.',
+                        'لا توجد سيارات منشورة حالياً على التطبيق.',
                         style: TextStyle(color: Colors.black54),
                       ),
                     )
                   else
                     Column(
                       children:
-                          cars.take(3).map((car) {
+                          allCars.take(3).map((car) {
                             final title =
                                 '${car['make'] ?? ''} ${car['model'] ?? ''}';
                             final year = car['year']?.toString() ?? '';
-                            final status = car['status'] ?? 'غير معروف';
-                            final imageUrl =
-                                car['images'] is List &&
-                                        (car['images'] as List).isNotEmpty
-                                    ? (car['images'] as List).first.toString()
-                                    : null;
+                            final status = car['approval_status'] ?? car['status'] ?? 'غير معروف';
+                            final imageUrl = AppConstants.resolveImageUrl(
+                              car['images'] is List &&
+                                      (car['images'] as List).isNotEmpty
+                                  ? (car['images'] as List).first.toString()
+                                  : null,
+                            );
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
@@ -205,12 +316,19 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                           borderRadius: BorderRadius.circular(
                                             14,
                                           ),
-                                          child: Image.network(
-                                            imageUrl,
+                                          child: CachedNetworkImage(
+                                            imageUrl: imageUrl,
                                             width: 70,
                                             height: 70,
                                             fit: BoxFit.cover,
-                                            errorBuilder:
+                                            memCacheWidth: 140,
+                                            placeholder:
+                                                (_, __) => Container(
+                                                  width: 70,
+                                                  height: 70,
+                                                  color: const Color(0xFFF0F0F0),
+                                                ),
+                                            errorWidget:
                                                 (_, __, ___) => Container(
                                                   width: 70,
                                                   height: 70,
@@ -252,7 +370,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const IndividualInventoryScreen(),
+                                      builder:
+                                          (_) =>
+                                              const IndividualInventoryScreen(),
                                     ),
                                   );
                                 },

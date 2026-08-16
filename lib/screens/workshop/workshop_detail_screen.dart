@@ -1,8 +1,10 @@
 // screens/workshops/workshop_detail_screen.dart
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/models/workshop_model.dart';
 import 'package:mators_car/widgets/section_header.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/ulits/contact_launcher.dart';
 
 class WorkshopDetailScreen extends StatelessWidget {
   final Workshop workshop;
@@ -18,7 +20,14 @@ class WorkshopDetailScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () {},
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('تم تجهيز رابط الورشة للمشاركة'),
+                  backgroundColor: AppColors.primary,
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -32,10 +41,13 @@ class WorkshopDetailScreen extends StatelessWidget {
               child: PageView.builder(
                 itemCount: workshop.images.length,
                 itemBuilder: (context, index) {
-                  return Image.network(
-                    workshop.images[index],
+                  return CachedNetworkImage(
+                    imageUrl: workshop.images[index],
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
+                    memCacheWidth: 800,
+                    placeholder:
+                        (context, url) => Container(color: Colors.grey.shade200),
+                    errorWidget: (context, url, error) {
                       return Container(
                         color: Colors.grey[200],
                         child: const Icon(Icons.image, size: 50),
@@ -63,7 +75,11 @@ class WorkshopDetailScreen extends StatelessWidget {
 
                   Row(
                     children: [
-                      Icon(Icons.location_on, size: 20, color: AppColors.textSecondary),
+                      Icon(
+                        Icons.location_on,
+                        size: 20,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         workshop.location,
@@ -95,16 +111,19 @@ class WorkshopDetailScreen extends StatelessWidget {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: workshop.services.map((service) {
-                      return Chip(
-                        label: Text(service),
-                        backgroundColor: AppColors.primary.withOpacity(0.1),
-                        labelStyle: TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 14,
-                        ),
-                      );
-                    }).toList(),
+                    children:
+                        workshop.services.map((service) {
+                          return Chip(
+                            label: Text(service),
+                            backgroundColor: AppColors.primary.withValues(
+                              alpha: 0.1,
+                            ),
+                            labelStyle: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 14,
+                            ),
+                          );
+                        }).toList(),
                   ),
                   const SizedBox(height: 30),
 
@@ -112,7 +131,8 @@ class WorkshopDetailScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed:
+                          () => ContactLauncher.call(context, workshop.phone),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 16),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/screens/notifications/notifications_screen.dart';
 import 'package:mators_car/ulits/colors.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -18,7 +19,7 @@ class SettingsScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -65,22 +66,45 @@ class SettingsScreen extends StatelessWidget {
           _SettingsTile(
             icon: Icons.person_outline,
             title: 'الملف الشخصي',
-            subtitle: 'قريبًا',
+            subtitle: 'عودة إلى شاشة الحساب',
+            onTap: () => Navigator.pop(context),
           ),
           _SettingsTile(
             icon: Icons.notifications_none,
             title: 'الإشعارات',
-            subtitle: 'قريبًا',
+            subtitle: 'عرض كل إشعاراتك',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationsScreen(),
+                ),
+              );
+            },
           ),
           _SettingsTile(
             icon: Icons.lock_outline,
             title: 'الخصوصية والأمان',
             subtitle: 'قريبًا',
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('إعدادات الخصوصية والأمان ستضاف قريبًا'),
+                ),
+              );
+            },
           ),
           _SettingsTile(
             icon: Icons.logout,
             title: 'تسجيل الخروج',
-            subtitle: 'متاح من شاشة الحساب لاحقًا',
+            subtitle: 'متاح من شاشة الحساب',
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('استخدم زر تسجيل الخروج من شاشة الملف الشخصي'),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -92,11 +116,13 @@ class _SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   const _SettingsTile({
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   @override
@@ -113,7 +139,7 @@ class _SettingsTile extends StatelessWidget {
         title: Text(title),
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),
-        onTap: () {},
+        onTap: onTap ?? () {},
       ),
     );
   }

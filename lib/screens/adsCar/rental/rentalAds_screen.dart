@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/rental/rentalAd_details_creen.dart';
+import 'package:mators_car/services/rental_ad_service.dart';
 import 'package:mators_car/ulits/colors.dart';
-import 'package:mators_car/ulits/mock_data.dart' show MockData;
+import 'package:mators_car/widgets/app_home_style_header.dart';
 import 'package:mators_car/widgets/section_header.dart';
 
 class RentalAdsScreen extends StatefulWidget {
@@ -13,13 +15,56 @@ class RentalAdsScreen extends StatefulWidget {
 }
 
 class _RentalAdsScreenState extends State<RentalAdsScreen> {
-  final List<Ad> rentalAds = MockData.rentalAds;
+  final RentalAdService _rentalAdService = RentalAdService();
+
+  // بيانات حقيقية قادمة من API عبر GET /rental-ads (راجع قسم
+  // "6. إدارة إعلانات التأجير (Rental Ads)" في ملف Postman) بدلاً من MockData.
+  List<Ad> rentalAds = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   // متغيرات منطق البحث وعرض الكل
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  bool _isSearching = false;
+  String _sortMode = 'newest'; // newest | price_asc | price_desc
   List<Ad>? _viewAllList;
   String? _viewAllTitle;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRentalAds();
+  }
+
+  Future<void> _loadRentalAds() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final rawAds = await _rentalAdService.getAllRentalAds();
+      final ads = rawAds.map((json) => Ad.fromJson(json)).toList();
+
+      // لا يوفر الـ API حقل "مميز" صريح لإعلانات التأجير، لذلك نضع علامة
+      // "مميز" من طرف التطبيق على أول 5 إعلانات فقط لأغراض العرض.
+      final withFeatured = List<Ad>.generate(ads.length, (index) {
+        return index < 5 ? ads[index].copyWith(isFeatured: true) : ads[index];
+      });
+
+      if (!mounted) return;
+      setState(() {
+        rentalAds = withFeatured;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'تعذر جلب إعلانات التأجير: $e';
+        _isLoading = false;
+      });
+    }
+  }
 
   // دالة التنقل للتفاصيل
   void _navigateToDetail(Ad ad, BuildContext context) {
@@ -38,6 +83,14 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  double _parseDailyPrice(Ad ad) => double.tryParse(ad.dailyPrice) ?? 0;
+
+  @override
   Widget build(BuildContext context) {
     // تصفية الإعلانات بناءً على نص البحث (البحث في الماركة أو الموديل)
     final filteredAds =
@@ -45,6 +98,22 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
           final fullName = '${ad.car.make} ${ad.car.model}'.toLowerCase();
           return fullName.contains(_searchQuery.toLowerCase());
         }).toList();
+
+    // تطبيق الترتيب المختار فعلياً من زر التصنيف (كان شكلياً بدون تأثير)
+    switch (_sortMode) {
+      case 'price_asc':
+        filteredAds.sort(
+          (a, b) => _parseDailyPrice(a).compareTo(_parseDailyPrice(b)),
+        );
+        break;
+      case 'price_desc':
+        filteredAds.sort(
+          (a, b) => _parseDailyPrice(b).compareTo(_parseDailyPrice(a)),
+        );
+        break;
+      default:
+        filteredAds.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    }
 
     final featuredAds = filteredAds.where((ad) => ad.isFeatured).toList();
 
@@ -78,58 +147,117 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title:
-            _isSearching
-                ? Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: TextField(
-                    autofocus: true,
-                    textAlign: TextAlign.right,
-                    onChanged: (val) => setState(() => _searchQuery = val),
-                    decoration: const InputDecoration(
-                      hintText: 'ابحث عن سيارة للتأجير...',
-                      border: InputBorder.none,
-                    ),
-                  ),
-                )
-                : const Text(
-                  'إعلانات تأجير السيارات',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-        leading: IconButton(
-          icon: Icon(
-            _isSearching ? Icons.close : Icons.search,
-            color: Colors.black,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            children: [
+              AppHomeStyleHeader(
+                title: 'إعلانات تأجير السيارات',
+                searchController: _searchController,
+                onSearchChanged: (v) => setState(() => _searchQuery = v),
+                searchHint: 'ابحث عن سيارة للتأجير...',
+                onFilterTap: _showSortSheet,
+              ),
+              const SizedBox(height: 16),
+              Expanded(child: _buildBody(filteredAds, featuredAds)),
+            ],
           ),
-          onPressed:
-              () => setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) _searchQuery = '';
-              }),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list, color: Colors.black),
-            onPressed: () {},
-          ),
-        ],
       ),
-      body: ListView(
+    );
+  }
+
+  // زر التصنيف/التصفية — أصبح يطبّق الترتيب فعلياً على القائمة (كان شكلياً
+  // يعرض رسالة تأكيد فقط دون أي تأثير حقيقي على النتائج).
+  void _showSortSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'تصفية الإعلانات',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.sort),
+                title: const Text('الأحدث'),
+                trailing: _sortMode == 'newest' ? const Icon(Icons.check) : null,
+                onTap: () {
+                  setState(() => _sortMode = 'newest');
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.attach_money),
+                title: const Text('الأقل سعرًا'),
+                trailing:
+                    _sortMode == 'price_asc' ? const Icon(Icons.check) : null,
+                onTap: () {
+                  setState(() => _sortMode = 'price_asc');
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.attach_money_outlined),
+                title: const Text('الأعلى سعرًا'),
+                trailing:
+                    _sortMode == 'price_desc' ? const Icon(Icons.check) : null,
+                onTap: () {
+                  setState(() => _sortMode = 'price_desc');
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBody(List<Ad> filteredAds, List<Ad> featuredAds) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return RefreshIndicator(
+        onRefresh: _loadRentalAds,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const SizedBox(height: 120),
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  _errorMessage!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadRentalAds,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
           // 1. قسم الإعلانات المميزة (يختفي أثناء البحث لتسهيل تجربة المستخدم)
-          if (!_isSearching && featuredAds.isNotEmpty) ...[
+          if (_searchQuery.isEmpty && featuredAds.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SectionHeader(
@@ -208,7 +336,7 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -274,7 +402,7 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -306,13 +434,18 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${ad.car.make} ${ad.car.model} ${ad.car.year}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      Expanded(
+                        child: Text(
+                          '${ad.car.make} ${ad.car.model} ${ad.car.year}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         'ل.س ${ad.dailyPrice} / يوم',
                         style: TextStyle(
@@ -327,23 +460,30 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on_outlined,
-                            size: 14,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            ad.car.location,
-                            style: TextStyle(
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 14,
                               color: AppColors.textSecondary,
-                              fontSize: 12,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                ad.car.location,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         'أو ل.س ${ad.monthlyPrice} / شهر',
                         style: TextStyle(
@@ -362,8 +502,8 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                     decoration: BoxDecoration(
                       color:
                           ad.status == 'pending'
-                              ? AppColors.warning.withOpacity(0.1)
-                              : AppColors.success.withOpacity(0.1),
+                              ? AppColors.warning.withValues(alpha: 0.1)
+                              : AppColors.success.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -399,7 +539,7 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
           border: Border.all(color: Colors.grey.shade100),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.02),
+              color: Colors.black.withValues(alpha: 0.02),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -443,7 +583,7 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
+                      color: Colors.black.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -491,11 +631,15 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                           color: AppColors.textSecondary,
                         ),
                         const SizedBox(width: 2),
-                        Text(
-                          ad.car.location,
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 11,
+                        Expanded(
+                          child: Text(
+                            ad.car.location,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -511,13 +655,18 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'أو ل.س ${ad.monthlyPrice} / شهر',
-                          style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontSize: 10,
+                        Expanded(
+                          child: Text(
+                            'أو ل.س ${ad.monthlyPrice} / شهر',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 10,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -526,8 +675,8 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                           decoration: BoxDecoration(
                             color:
                                 ad.status == 'pending'
-                                    ? AppColors.warning.withOpacity(0.1)
-                                    : AppColors.success.withOpacity(0.1),
+                                    ? AppColors.warning.withValues(alpha: 0.1)
+                                    : AppColors.success.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -561,12 +710,17 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
     BoxFit fit = BoxFit.cover,
   }) {
     if (imageUrl != null && imageUrl.isNotEmpty) {
-      return Image.network(
-        imageUrl,
+      return CachedNetworkImage(
+        imageUrl: imageUrl,
         width: width,
         height: height,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) {
+        // نحدد حجم فك الترميز حسب عرض العرض الفعلي إن كان معروفاً، بحد
+        // أقصى معقول، بدل تحميل الصورة الأصلية كاملة دائماً.
+        memCacheWidth:
+            (width != null && width.isFinite) ? (width * 2).round() : 600,
+        placeholder: (context, url) => Container(color: Colors.grey.shade200),
+        errorWidget: (context, url, error) {
           return Image.asset(
             'assets/image/intro.jpg',
             width: width,

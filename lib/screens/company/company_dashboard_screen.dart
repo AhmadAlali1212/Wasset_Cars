@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/screens/company/company_add_car_wizard_screen.dart';
+import 'package:mators_car/screens/company/company_ads_screen.dart';
 import 'package:mators_car/screens/company/company_inventory_screen.dart';
 import 'package:mators_car/screens/company/company_profile_screen.dart';
 import 'package:mators_car/screens/company/company_wallet_screen.dart';
+import 'package:mators_car/screens/promotions/promotions_list_screen.dart';
+import 'package:mators_car/screens/promotions/subscription_screen.dart';
+import 'package:mators_car/screens/auction/my_auctions_screen.dart';
+import 'package:mators_car/screens/auction/my_bids_screen.dart';
+import 'package:mators_car/screens/adsCar/rental/my_rental_bookings_screen.dart';
 
 class CompanyDashboardScreen extends StatelessWidget {
   const CompanyDashboardScreen({super.key});
@@ -18,7 +24,7 @@ class CompanyDashboardScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -58,8 +64,24 @@ class CompanyDashboardScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const CompanyInventoryScreen(),
+                    builder:
+                        (_) => CompanyInventoryScreen(
+                          addCarScreenBuilder:
+                              (_) => const CompanyAddCarWizardScreen(),
+                        ),
                   ),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: 'إعلانات البيع والتأجير',
+              subtitle: 'إدارة إعلانات البيع والتأجير الخاصة بالمعرض',
+              icon: Icons.campaign_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CompanyAdsScreen()),
                 );
               },
             ),
@@ -73,6 +95,68 @@ class CompanyDashboardScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (_) => const CompanyWalletScreen(),
+                  ),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: 'الاشتراك',
+              subtitle: 'عرض حالة اشتراكك وتجديده أو إلغاؤه',
+              icon: Icons.workspace_premium_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: 'العروض الترويجية',
+              subtitle: 'إضافة وإدارة العروض الترويجية لمعرضك',
+              icon: Icons.local_offer_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PromotionsScreen()),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: 'إدارة المزادات',
+              subtitle: 'أنشئ مزادات على سياراتك وعدّلها أو احذفها',
+              icon: Icons.gavel_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MyAuctionsScreen()),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: 'مزايداتي',
+              subtitle: 'المزادات التي زايدت عليها ونتيجتها',
+              icon: Icons.emoji_events_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MyBidsScreen()),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: 'حجوزات التأجير',
+              subtitle: 'الحجوزات التي قمت بها على سيارات مؤجَّرة',
+              icon: Icons.event_available_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MyRentalBookingsScreen(),
                   ),
                 );
               },

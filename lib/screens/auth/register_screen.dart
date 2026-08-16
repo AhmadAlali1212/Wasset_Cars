@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:mators_car/screens/auth/login_screen.dart';
 import 'package:mators_car/screens/auth/verification_screen.dart';
 import 'package:mators_car/services/auth_serivces.dart';
@@ -26,7 +27,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _acceptTerms = false;
   bool _obscurePassword = true;
 
-  final AuthService _authService = AuthService();
+  late AuthService _authService;
 
   String _getAccountTypeName() {
     switch (widget.accountTypeId) {
@@ -37,6 +38,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       default:
         return '';
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _authService = Provider.of<AuthService>(context, listen: false);
   }
 
   Future<void> _register() async {
@@ -274,21 +281,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     icon: Icons.lock_outline,
 
                     hint: 'ادخل كلمة المرور',
-                                          isPassword: _obscurePassword,
+                    isPassword: _obscurePassword,
 
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          color: const Color(0xFF9CA3AF),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: const Color(0xFF9CA3AF),
                       ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'الرجاء إدخال كلمة المرور';
@@ -316,21 +323,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     icon: Icons.lock_outline,
 
                     hint: 'اعِد إدخال كلمة المرور',
-                                        isPassword: _obscurePassword,
+                    isPassword: _obscurePassword,
 
-                        suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          color: const Color(0xFF9CA3AF),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: const Color(0xFF9CA3AF),
                       ),
+                      onPressed: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'الرجاء تأكيد كلمة المرور';

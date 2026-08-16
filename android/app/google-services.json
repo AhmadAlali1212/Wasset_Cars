@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "27213457413",
+    "project_id": "wassetak-cars",
+    "storage_bucket": "wassetak-cars.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:27213457413:android:44ba52423ca772f299946c",
+        "android_client_info": {
+          "package_name": "com.example.mators_car"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDVJLw2FW6rDJGCI9-PO8fVzoZ4rFKdICo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

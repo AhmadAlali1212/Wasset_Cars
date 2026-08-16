@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mators_car/screens/company/company_add_car_wizard_screen.dart';
 import 'package:mators_car/screens/company/company_dashboard_screen.dart';
-import 'package:mators_car/screens/individual/individual_add_car_screen.dart';
 import 'package:mators_car/screens/individual/individual_dashboard_screen.dart';
-import 'package:mators_car/screens/profile_screen.dart';
-import 'package:mators_car/ulits/mock_data.dart';
 import 'package:mators_car/screens/auction/auctions_screen.dart';
 import 'package:mators_car/screens/adsCar/rental/rentalAds_screen.dart'; // صفحة التأجير المحدثة
+import 'package:mators_car/screens/adsCar/sellCars/home_ads_screen.dart'; // سيارات التطبيق المعروضة للمستخدمين
+import 'package:mators_car/screens/promotions/promoted_cars_screen.dart';
 import 'package:mators_car/services/auth_serivces.dart';
 
 class MainScreen extends StatefulWidget {
@@ -24,20 +22,22 @@ class _MainScreenState extends State<MainScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
-  // استبدال المفضلة بالتأجير في التبويب الثاني (الدليل الرقمي 1)
+  // التبويب الأول أصبح يعرض سيارات التطبيق الفعلية المعروضة للمستخدمين
+  // (بدلاً من لوحة المعرض)، وتبويب الحساب أصبح يعرض لوحة المعرض/التحكم
+  // مباشرة، ومن داخلها يمكن الدخول إلى الحساب الشخصي.
+  // زر "الإضافة" الأوسط (index 2) أصبح يعرض شاشة العروض الترويجية بدل
+  // شاشة إضافة سيارة مباشرة — إضافة السيارة ما زالت متاحة عبر لوحة
+  // التحكم/المعرض (تبويب index 4) كما كانت أصلاً.
   List<Widget> _buildScreens(bool isCompany) {
     return [
+      const HomeScreen(),
+      RentalAdsScreen(),
+      const PromotedCarsScreen(),
+      const AuctionsScreen(),
       if (isCompany)
         const CompanyDashboardScreen()
       else
         const IndividualDashboardScreen(),
-      RentalAdsScreen(),
-      if (isCompany)
-        const CompanyAddCarWizardScreen()
-      else
-        const IndividualAddCarScreen(),
-      AuctionsScreen(auctions: MockData.auctions),
-      const ProfileScreen(),
     ];
   }
 
@@ -89,6 +89,16 @@ class _MainScreenState extends State<MainScreen>
         authService.currentUser?['account_type'] == 'company' ||
         authService.currentUser?['account_type_id'] == 2;
     final screens = _buildScreens(isCompanyAccount);
+    final safeIndex = _currentIndex.clamp(0, screens.length - 1);
+    if (safeIndex != _currentIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _currentIndex = safeIndex;
+          });
+        }
+      });
+    }
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -100,7 +110,7 @@ class _MainScreenState extends State<MainScreen>
               position: _slideAnimation,
               child: FadeTransition(
                 opacity: _fadeAnimation,
-                child: screens[_currentIndex],
+                child: screens[safeIndex],
               ),
             ),
           ],
@@ -111,40 +121,43 @@ class _MainScreenState extends State<MainScreen>
   }
 
   Widget _buildModernNavBar(bool isCompany) {
-    return Container(
-      height: 85,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 15,
-            spreadRadius: 2,
-            offset: const Offset(0, -3),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: SafeArea(
+        top: false,
+        child: Container(
+          height: 72,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.10),
+                blurRadius: 20,
+                spreadRadius: 1,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, Icons.home_filled, 'الرئيسية'),
+              _buildNavItem(
+                1,
+                Icons.car_rental_outlined,
+                'التأجير',
+              ), // الأيقونة المحدثة للتأجير
+              _buildCenterPlusButton(),
+              _buildNavItem(3, Icons.gavel_rounded, 'المزادات'),
+              _buildNavItem(
+                4,
+                Icons.storefront_outlined,
+                isCompany ? 'لوحة المعرض' : 'لوحة التحكم',
+              ),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(
-            0,
-            Icons.home_filled,
-            isCompany ? 'المعرض' : 'لوحة التحكم',
-          ),
-          _buildNavItem(
-            1,
-            Icons.car_rental_outlined,
-            'التأجير',
-          ), // الأيقونة المحدثة للتأجير
-          _buildCenterPlusButton(),
-          _buildNavItem(3, Icons.gavel_rounded, 'المزادات'),
-          _buildNavItem(4, Icons.person_outline, 'الحساب'),
-        ],
       ),
     );
   }
@@ -184,30 +197,28 @@ class _MainScreenState extends State<MainScreen>
 
   Widget _buildCenterPlusButton() {
     return GestureDetector(
-      onTap: () {
-        if (_currentIndex == 2) {
-          setState(() {
-            _currentIndex = 2;
-          });
-        }
-      },
+      onTap: () => _onTabTapped(2),
       child: Container(
-        width: 54,
-        height: 54,
-        transform: Matrix4.translationValues(0, -10, 0),
+        width: 52,
+        height: 52,
+        transform: Matrix4.translationValues(0, -8, 0),
         decoration: BoxDecoration(
           color: const Color(0xFF0F4C81),
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF0F4C81).withOpacity(0.3),
-              blurRadius: 10,
-              spreadRadius: 2,
+              color: const Color(0xFF0F4C81).withOpacity(0.35),
+              blurRadius: 12,
+              spreadRadius: 1,
               offset: const Offset(0, 5),
             ),
           ],
         ),
-        child: const Icon(Icons.add, color: Colors.white, size: 30),
+        child: const Icon(
+          Icons.local_offer_outlined,
+          color: Colors.white,
+          size: 24,
+        ),
       ),
     );
   }

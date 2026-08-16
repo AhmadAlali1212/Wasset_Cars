@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:mators_car/services/auth_serivces.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
@@ -22,9 +23,15 @@ class VerificationScreen extends StatefulWidget {
 class _VerificationScreenState extends State<VerificationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _otpController = TextEditingController();
-  final AuthService _authService = AuthService();
+  late AuthService _authService;
   bool _isLoading = false;
   bool _isResending = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _authService = Provider.of<AuthService>(context, listen: false);
+  }
 
   Future<void> _verifyOtp() async {
     if (!_formKey.currentState!.validate()) {

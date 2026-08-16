@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/models/ad_model.dart';
 import 'package:mators_car/ulits/colors.dart';
 
@@ -37,11 +38,17 @@ class AdCard extends StatelessWidget {
                     topLeft: Radius.circular(16),
                     topRight: Radius.circular(16),
                   ),
-                  child: Image.network(
-                    ad.car.images[0],
+                  child: CachedNetworkImage(
+                    imageUrl: ad.car.images[0],
                     width: double.infinity,
                     height: 140,
                     fit: BoxFit.cover,
+                    memCacheWidth: 440,
+                    placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.directions_car),
+                    ),
                   ),
                 ),
                 if (ad.isFeatured)
@@ -178,11 +185,17 @@ class AdListCard extends StatelessWidget {
                 topRight: Radius.circular(12),
                 bottomRight: Radius.circular(12),
               ),
-              child: Image.network(
-                ad.car.images[0],
+              child: CachedNetworkImage(
+                imageUrl: ad.car.images[0],
                 width: 120,
                 height: 100,
                 fit: BoxFit.cover,
+                memCacheWidth: 240,
+                placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                errorWidget: (context, url, error) => Container(
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.directions_car),
+                ),
               ),
             ),
 

@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/compents/car_info_card.dart';
-
 import 'package:mators_car/ulits/colors.dart';
-import 'package:mators_car/ulits/mock_data.dart';
-import 'package:mators_car/widgets/ads/custom_app_bar.dart';
-
 import '../compents/car_image_slider.dart';
-
 
 class AdSuccessScreen extends StatelessWidget {
   final Ad ad;
@@ -32,7 +27,7 @@ class AdSuccessScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
+                color: AppColors.success.withAlpha((0.1 * 255).round()),
                 border: Border(
                   bottom: BorderSide(color: AppColors.success, width: 2),
                 ),
@@ -79,7 +74,8 @@ class AdSuccessScreen extends StatelessWidget {
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            vertical: 6, horizontal: 12
+                          vertical: 6,
+                          horizontal: 12,
                         ),
                         decoration: BoxDecoration(
                           gradient: AppColors.primaryGradient,
@@ -97,17 +93,24 @@ class AdSuccessScreen extends StatelessWidget {
                       const SizedBox(width: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            vertical: 6, horizontal: 12
+                          vertical: 6,
+                          horizontal: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: ad.status == 'pending'
-                              ? AppColors.warning.withOpacity(0.2)
-                              : AppColors.success.withOpacity(0.2),
+                          color:
+                              ad.status == 'pending'
+                                  ? AppColors.warning.withAlpha(
+                                    (0.2 * 255).round(),
+                                  )
+                                  : AppColors.success.withAlpha(
+                                    (0.2 * 255).round(),
+                                  ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: ad.status == 'pending'
-                                ? AppColors.warning
-                                : AppColors.success,
+                            color:
+                                ad.status == 'pending'
+                                    ? AppColors.warning
+                                    : AppColors.success,
                           ),
                         ),
                         child: Text(
@@ -115,9 +118,10 @@ class AdSuccessScreen extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: ad.status == 'pending'
-                                ? AppColors.warning
-                                : AppColors.success,
+                            color:
+                                ad.status == 'pending'
+                                    ? AppColors.warning
+                                    : AppColors.success,
                           ),
                         ),
                       ),
@@ -207,7 +211,10 @@ class AdSuccessScreen extends StatelessWidget {
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            Navigator.popUntil(context, (route) => route.isFirst);
+                            Navigator.popUntil(
+                              context,
+                              (route) => route.isFirst,
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,

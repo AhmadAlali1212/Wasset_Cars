@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/ulits/colors.dart';
 
 import '../../models/workshop_model.dart';
@@ -42,10 +43,12 @@ class WorkshopCard extends StatelessWidget {
                   child: PageView.builder(
                     itemCount: workshop.images.length,
                     itemBuilder: (context, index) {
-                      return Image.network(
-                        workshop.images[index],
+                      return CachedNetworkImage(
+                        imageUrl: workshop.images[index],
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
+                        memCacheWidth: 700,
+                        placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                        errorWidget: (context, url, error) {
                           return Container(
                             color: Colors.grey[200],
                             child: const Icon(Icons.image, size: 50),

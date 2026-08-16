@@ -8,12 +8,20 @@ class AuthStorage {
 
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    final cleanedToken = token.trim();
+    if (cleanedToken.isNotEmpty) {
+      await prefs.setString(_tokenKey, cleanedToken);
+    }
   }
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    final token = prefs.getString(_tokenKey);
+    if (token == null) {
+      return null;
+    }
+    final cleanedToken = token.trim();
+    return cleanedToken.isNotEmpty ? cleanedToken : null;
   }
 
   static Future<void> clearToken() async {

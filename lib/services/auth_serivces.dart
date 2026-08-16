@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../ulits/constans.dart';
 import '../screens/auth/storeg/auth_storage.dart';
+import 'push_notification_service.dart';
 
 class AuthService with ChangeNotifier {
   final Dio _dio;
@@ -54,25 +56,16 @@ class AuthService with ChangeNotifier {
           'account_type': accountType,
         },
       );
-      print('STATUS = ${response.statusCode}');
-      print('DATA = ${response.data}');
+      debugPrint('STATUS = ${response.statusCode}');
+      debugPrint('DATA = ${response.data}');
       _handleResponseErrors(response, 'التسجيل');
 
-      if (response.data['access_token'] != null) {
-        await AuthStorage.saveToken(response.data['access_token']);
-        if (response.data['user'] != null) {
-          await AuthStorage.saveUser(response.data['user']);
-          _currentUser = response.data['user'];
-        }
-        _isLoggedIn = true;
-        notifyListeners();
-      }
-
+      await _storeAuthResponse(response.data);
       return response.data;
     } on DioException catch (e) {
-      print('STATUS ERROR = ${e.response?.statusCode}');
-      print('DATA ERROR = ${e.response?.data}');
-      print('MESSAGE ERROR = ${e.message}');
+      debugPrint('STATUS ERROR = ${e.response?.statusCode}');
+      debugPrint('DATA ERROR = ${e.response?.data}');
+      debugPrint('MESSAGE ERROR = ${e.message}');
       rethrow;
     }
   }
@@ -133,6 +126,10 @@ class AuthService with ChangeNotifier {
 
   Future<void> logout() async {
     try {
+      // نُلغي تسجيل رمز جهاز FCM قبل إبطال جلسة السيرفر (بينما التوكن
+      // لا يزال صالحاً لطلب DELETE /device-tokens المصادَق عليه)، حتى لا
+      // يستمر هذا الجهاز باستقبال إشعارات الحساب بعد تسجيل الخروج.
+      await PushNotificationService.instance.unregisterFromBackend();
       await _dio.post('/logout', options: await _authOptions());
       await AuthStorage.clearToken();
       await AuthStorage.clearUser();
@@ -146,28 +143,50 @@ class AuthService with ChangeNotifier {
   }
 
   Future<bool> checkAuth() async {
-    try {
-      final token = await AuthStorage.getToken();
-      if (token == null) {
-        _isLoggedIn = false;
-        return false;
-      }
-
-      final response = await _dio.get('/user', options: await _authOptions());
-      if (response.statusCode == 200) {
-        if (response.data is Map) {
-          _currentUser = Map<String, dynamic>.from(response.data as Map);
-          await AuthStorage.saveUser(_currentUser!);
-        }
-        _isLoggedIn = true;
-        notifyListeners();
-        return true;
-      }
-      return false;
-    } catch (e) {
+    final token = await AuthStorage.getToken();
+    debugPrint('checkAuth: token = $token');
+    if (token == null) {
       _isLoggedIn = false;
+      _currentUser = null;
+      notifyListeners();
       return false;
     }
+
+    _isLoggedIn = true;
+    _currentUser = await AuthStorage.getUser();
+    debugPrint('checkAuth: cached user = $_currentUser');
+
+    try {
+      final response = await _dio.get('/user', options: await _authOptions());
+      debugPrint(
+        'checkAuth: /user status = ${response.statusCode}, data = ${response.data}',
+      );
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final userData =
+            (data is Map && data['user'] is Map)
+                ? Map<String, dynamic>.from(data['user'] as Map)
+                : (data is Map ? Map<String, dynamic>.from(data) : null);
+
+        if (userData != null) {
+          _currentUser = userData;
+          await AuthStorage.saveUser(_currentUser!);
+        }
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        debugPrint('checkAuth: token rejected, clearing');
+        await AuthStorage.clearToken();
+        await AuthStorage.clearUser();
+        _isLoggedIn = false;
+        _currentUser = null;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      debugPrint('checkAuth: exception = $e');
+    }
+
+    notifyListeners();
+    return _isLoggedIn;
   }
 
   String _convertAccountType(int accountTypeId) {
@@ -261,7 +280,7 @@ class AuthService with ChangeNotifier {
     required String email,
   }) async {
     final response = await _dio.post(
-      '/forgot-password',
+      '/password/otp-request',
       data: {'email': email},
     );
     _handleResponseErrors(response, 'طلب رمز إعادة تعيين كلمة المرور');
@@ -287,7 +306,7 @@ class AuthService with ChangeNotifier {
     required String passwordConfirmation,
   }) async {
     final response = await _dio.post(
-      '/reset-password',
+      '/password/otp-reset',
       data: {
         'email': email,
         'otp': otp,
@@ -310,9 +329,21 @@ class AuthService with ChangeNotifier {
     }
 
     final responseMap = Map<String, dynamic>.from(data);
-    final accessToken = responseMap['access_token'];
-    final user = responseMap['user'];
+    final responseData = responseMap['data'];
+    final nestedData =
+        responseData is Map
+            ? Map<String, dynamic>.from(responseData)
+            : <String, dynamic>{};
 
+    final accessToken =
+        responseMap['access_token'] ??
+        responseMap['token'] ??
+        nestedData['access_token'] ??
+        nestedData['token'];
+
+    final user = responseMap['user'] ?? nestedData['user'];
+    debugPrint('Access Token Found: $accessToken');
+    debugPrint('User: $user');
     if (accessToken is String && accessToken.isNotEmpty) {
       await AuthStorage.saveToken(accessToken);
       _isLoggedIn = true;
@@ -327,8 +358,12 @@ class AuthService with ChangeNotifier {
       _currentUser = userMap;
     }
 
-    if (accessToken is String && accessToken.isNotEmpty) {
+    if (_isLoggedIn) {
       notifyListeners();
+      // نسجّل رمز جهاز FCM الحالي فوراً بعد نجاح الدخول/التسجيل، حتى
+      // يبدأ المستخدم باستقبال إشعارات push من هذه اللحظة دون انتظار
+      // إعادة فتح التطبيق.
+      unawaited(PushNotificationService.instance.syncTokenWithBackend());
     }
   }
 }
