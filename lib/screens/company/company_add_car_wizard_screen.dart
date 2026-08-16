@@ -277,6 +277,7 @@ class _CompanyAddCarWizardScreenState extends State<CompanyAddCarWizardScreen> {
                 icon: const Icon(Icons.map_outlined),
                 label: const Text('تحديد الموقع على الخريطة'),
                 style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                   backgroundColor: AppColors.primaryNavy,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -820,6 +821,7 @@ class _CompanyAddCarWizardScreenState extends State<CompanyAddCarWizardScreen> {
               icon: const Icon(Icons.photo_library_outlined),
               label: const Text('رفع الصور'),
               style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                 backgroundColor: const Color(0xFF0F4C81),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -1049,6 +1051,7 @@ class _CompanyAddCarWizardScreenState extends State<CompanyAddCarWizardScreen> {
                       });
                     },
             style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
               backgroundColor: const Color(0xFF0F4C81),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

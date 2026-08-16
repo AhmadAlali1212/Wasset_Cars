@@ -200,6 +200,7 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
               return ElevatedButton(
                 onPressed: enabled ? () => _submitPrices(drafts) : null,
                 style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                   backgroundColor: const Color(0xFF0F4C81),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

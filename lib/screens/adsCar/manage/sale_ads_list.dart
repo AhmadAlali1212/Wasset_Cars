@@ -115,6 +115,7 @@ class _SaleAdsListState extends State<SaleAdsList> {
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
                 style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                   backgroundColor: AppColors.success,
                 ),
                 child: const Text('تم البيع'),
@@ -156,6 +157,7 @@ class _SaleAdsListState extends State<SaleAdsList> {
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
                 style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                   backgroundColor: AppColors.error,
                 ),
                 child: const Text('حذف'),

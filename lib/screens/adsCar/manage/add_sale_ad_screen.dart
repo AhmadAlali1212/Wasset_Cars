@@ -214,6 +214,7 @@ class _AddSaleAdScreenState extends State<AddSaleAdScreen> {
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                   backgroundColor: const Color(0xFF0F4C81),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

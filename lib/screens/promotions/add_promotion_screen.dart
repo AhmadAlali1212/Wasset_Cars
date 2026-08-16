@@ -575,6 +575,7 @@ class _AddPromotionScreenState extends State<AddPromotionScreen> {
                       ? (_basicInfoValid ? () => setState(() => _step = 1) : null)
                       : _submit,
               style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -674,6 +675,7 @@ class _SubscriptionRequiredSheet extends StatelessWidget {
             ElevatedButton(
               onPressed: onSubscribeTap,
               style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(

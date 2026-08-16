@@ -336,6 +336,7 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                     child: ElevatedButton(
                       onPressed: _isBooking ? null : _showBookingDialog,
                       style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                         backgroundColor: AppColors.primary,
                         maximumSize: Size(double.infinity, 50),
                         shape: RoundedRectangleBorder(

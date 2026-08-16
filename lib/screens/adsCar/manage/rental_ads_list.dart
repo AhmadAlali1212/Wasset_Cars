@@ -151,6 +151,7 @@ class _RentalAdsListState extends State<RentalAdsList> {
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
                 style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                   backgroundColor: AppColors.error,
                 ),
                 child: const Text('حذف'),

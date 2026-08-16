@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:mators_car/screens/company/company_public_profile_screen.dart';
 import 'package:mators_car/screens/company/company_wallet_screen.dart';
 import 'package:mators_car/screens/promotions/promotions_list_screen.dart';
 import 'package:mators_car/screens/promotions/subscription_screen.dart';
@@ -58,7 +59,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     final name = user['name'] ?? 'اسم الشركة';
     final email = user['email'] ?? 'البريد الإلكتروني غير متوفر';
     final phone = user['phone_number'] ?? 'رقم الجوال غير متوفر';
-    final accountType = user['account_type'] ?? 'company';
+    final accountType = _accountTypeLabel(user['account_type']);
     final followersRaw = user['followers_count'];
     final followersText = followersRaw != null ? followersRaw.toString() : '—';
 
@@ -76,20 +77,35 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 8),
+            InkWell(
+              // الضغط على بطاقة معلومات الحساب ينقل إلى صفحة "البروفايل"
+              // الكاملة (الشعار، الغلاف، التقييمات، عدد السيارات...) —
+              // نفس الصفحة التي يراها الزوار، لكن بصفتها ملفك الخاص فتُخفى
+              // منها أزرار المتابعة/التواصل تلقائياً.
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => CompanyPublicProfileScreen(company: user),
                   ),
-                ],
-              ),
-              child: Column(
+                );
+              },
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
@@ -162,9 +178,9 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                           horizontal: 14,
                         ),
                         decoration: BoxDecoration(
-                          color: const Color(
-                            0xFF0F4C81,
-                          ).withValues(alpha: 0.08),
+                          color: const Color(0xFF0F4C81).withValues(
+                            alpha: 0.08,
+                          ),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
@@ -196,6 +212,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                     ),
                   ],
                 ],
+              ),
               ),
             ),
             const SizedBox(height: 24),
@@ -235,7 +252,9 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const PromotionsScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const PromotionsScreen(),
+                  ),
                 );
               },
             ),
@@ -270,6 +289,26 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
         ),
       ),
     );
+  }
+
+  // account_type يصل أحياناً كنص بسيط ('company') وأحياناً ككائن كامل
+  // لعلاقة "نوع الحساب" ({id, name, description, ...})؛ طباعته مباشرة
+  // بدون هذه الدالة هي سبب ظهور نص الـ Map الخام بالواجهة كما بالصورة.
+  String _accountTypeLabel(dynamic raw) {
+    String value = 'company';
+    if (raw is Map) {
+      value = (raw['name'] ?? raw['type'] ?? 'company').toString();
+    } else if (raw != null) {
+      value = raw.toString();
+    }
+    switch (value.trim().toLowerCase()) {
+      case 'company':
+        return 'معرض';
+      case 'individual':
+        return 'فرد';
+      default:
+        return value;
+    }
   }
 
   Widget _buildOptionCard({

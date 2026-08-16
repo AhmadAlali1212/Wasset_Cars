@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/rental/rentalAd_details_creen.dart';
+import 'package:mators_car/services/promotion_service.dart';
 import 'package:mators_car/services/rental_ad_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/app_home_style_header.dart';
@@ -16,6 +17,7 @@ class RentalAdsScreen extends StatefulWidget {
 
 class _RentalAdsScreenState extends State<RentalAdsScreen> {
   final RentalAdService _rentalAdService = RentalAdService();
+  final PromotionService _promotionService = PromotionService();
 
   // بيانات حقيقية قادمة من API عبر GET /rental-ads (راجع قسم
   // "6. إدارة إعلانات التأجير (Rental Ads)" في ملف Postman) بدلاً من MockData.
@@ -46,11 +48,26 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
       final rawAds = await _rentalAdService.getAllRentalAds();
       final ads = rawAds.map((json) => Ad.fromJson(json)).toList();
 
-      // لا يوفر الـ API حقل "مميز" صريح لإعلانات التأجير، لذلك نضع علامة
-      // "مميز" من طرف التطبيق على أول 5 إعلانات فقط لأغراض العرض.
-      final withFeatured = List<Ad>.generate(ads.length, (index) {
-        return index < 5 ? ads[index].copyWith(isFeatured: true) : ads[index];
-      });
+      // "مميز" هنا يعني: صاحب هذا الإعلان لديه عرض ترويجي نشط حالياً.
+      // العرض الترويجي غير مرتبط بسيارة/إعلان محدد (راجع PromotionService)
+      // بل بصاحب الحساب، لذلك يجب أن تظهر العلامة على كل إعلانات نفس
+      // المالك وليس فقط على إعلان واحد أو أول عناصر عشوائية بالقائمة.
+      Set<int> promotedOwnerIds = {};
+      try {
+        promotedOwnerIds = await _promotionService.getPromotedOwnerIds();
+      } catch (_) {
+        // تعذّر جلب العروض الترويجية (مثلاً بلا اتصال) لا يجب أن يمنع
+        // عرض إعلانات التأجير نفسها، فقط لن تظهر علامة "مميز" مؤقتاً.
+      }
+
+      final withFeatured =
+          ads
+              .map(
+                (ad) => ad.copyWith(
+                  isFeatured: promotedOwnerIds.contains(ad.userId),
+                ),
+              )
+              .toList();
 
       if (!mounted) return;
       setState(() {

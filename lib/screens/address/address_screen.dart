@@ -220,6 +220,7 @@ class _AddressScreenState extends State<AddressScreen> {
               icon: const Icon(Icons.add_location_alt_outlined),
               label: const Text('إضافة عنوان جديد'),
               style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                 backgroundColor: const Color(0xFF0F4C81),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(

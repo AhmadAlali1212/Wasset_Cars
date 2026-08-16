@@ -6,7 +6,9 @@ import 'package:mators_car/models/promotion_model.dart';
 import 'package:mators_car/services/ads_service.dart';
 import 'package:mators_car/services/auth_serivces.dart';
 import 'package:mators_car/services/promotion_service.dart';
+import 'package:mators_car/services/rental_ad_service.dart';
 import 'package:mators_car/screens/adsCar/sellCars/ad_detail_screen.dart';
+import 'package:mators_car/screens/adsCar/rental/rentalAd_details_creen.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/app_home_style_header.dart';
 
@@ -23,10 +25,16 @@ class PromotedCarsScreen extends StatefulWidget {
   State<PromotedCarsScreen> createState() => _PromotedCarsScreenState();
 }
 
+class _PromotedAd {
+  final Ad ad;
+  final bool isRental;
+  _PromotedAd({required this.ad, required this.isRental});
+}
+
 class _PromotedSection {
   final Promotion promotion;
   final String companyName;
-  final List<Ad> ads;
+  final List<_PromotedAd> ads;
   _PromotedSection({
     required this.promotion,
     required this.companyName,
@@ -37,6 +45,7 @@ class _PromotedSection {
 class _PromotedCarsScreenState extends State<PromotedCarsScreen> {
   final PromotionService _promotionService = PromotionService();
   final AdsService _adsService = AdsService();
+  final RentalAdService _rentalAdService = RentalAdService();
   late Future<List<_PromotedSection>> _sectionsFuture;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -127,9 +136,12 @@ class _PromotedCarsScreenState extends State<PromotedCarsScreen> {
         .toList();
     if (ownerIds.isEmpty) return [];
 
-    // نجلب كل سيارات كل شركة على حدة (بدل مسح كل إعلانات السوق)، لضمان
-    // ظهور كل سيارات الشركة فعلاً بغض النظر عن حجم السوق الكلي.
-    final results = await Future.wait(
+    // العرض الترويجي حملة عامة تشمل كل سيارات صاحبها بغض النظر عن نوع
+    // الإعلان (بيع أو تأجير)، لذلك نجلب النوعين معاً: كل سيارات البيع
+    // لكل شركة على حدة (userId مدعوم بـ GET /ads)، وكل إعلانات التأجير
+    // مرة واحدة فقط (لا يدعم GET /rental-ads فلترة بصاحب الإعلان) ثم
+    // نُصفّيها محلياً حسب كل شركة.
+    final saleResultsFuture = Future.wait(
       ownerIds.map(
         (ownerId) => _adsService.getAllAds(
           status: 'active',
@@ -138,25 +150,46 @@ class _PromotedCarsScreenState extends State<PromotedCarsScreen> {
         ),
       ),
     );
+    final rentalResultsFuture = _rentalAdService.getAllRentalAds();
+
+    final saleResults = await saleResultsFuture;
+    List<Map<String, dynamic>> rentalResultsRaw = [];
+    try {
+      rentalResultsRaw = await rentalResultsFuture;
+    } catch (_) {
+      // تعذّر جلب إعلانات التأجير لا يجب أن يمنع ظهور سيارات البيع
+      // الترويجية على الأقل.
+    }
+    final rentalAdsByOwner = <int, List<Ad>>{};
+    for (final json in rentalResultsRaw) {
+      final ad = Ad.fromJson(json);
+      rentalAdsByOwner.putIfAbsent(ad.userId, () => []).add(ad);
+    }
 
     final sections = <_PromotedSection>[];
     for (var i = 0; i < ownerIds.length; i++) {
       final ownerId = ownerIds[i];
-      final ads = results[i].map((json) => Ad.fromJson(json)).toList();
-      if (ads.isEmpty) continue;
+      final saleAds = saleResults[i].map((json) => Ad.fromJson(json)).toList();
+      final rentalAds = rentalAdsByOwner[ownerId] ?? [];
+
+      final combinedAds = <_PromotedAd>[
+        ...saleAds.map((ad) => _PromotedAd(ad: ad, isRental: false)),
+        ...rentalAds.map((ad) => _PromotedAd(ad: ad, isRental: true)),
+      ];
+      if (combinedAds.isEmpty) continue;
 
       final promotion = promotionsByOwner[ownerId]!;
       final companyName = promotion.ownerName?.isNotEmpty == true
           ? promotion.ownerName!
-          : (ads.first.sellerName.isNotEmpty
-                ? ads.first.sellerName
-                : ads.first.car.userName);
+          : (combinedAds.first.ad.sellerName.isNotEmpty
+                ? combinedAds.first.ad.sellerName
+                : combinedAds.first.ad.car.userName);
 
       sections.add(
         _PromotedSection(
           promotion: promotion,
           companyName: companyName,
-          ads: ads,
+          ads: combinedAds,
         ),
       );
     }
@@ -190,7 +223,7 @@ class _PromotedCarsScreenState extends State<PromotedCarsScreen> {
       );
       final matchingAds = section.ads
           .where(
-            (ad) => '${ad.car.make} ${ad.car.model}'.toLowerCase().contains(
+            (pa) => '${pa.ad.car.make} ${pa.ad.car.model}'.toLowerCase().contains(
               query,
             ),
           )
@@ -413,7 +446,7 @@ class _PromotedCarsScreenState extends State<PromotedCarsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: section.ads.length,
             itemBuilder: (context, index) {
-              final ad = section.ads[index];
+              final promotedAd = section.ads[index];
               return Padding(
                 padding: const EdgeInsets.only(left: 12),
                 child: SizedBox(
@@ -423,11 +456,15 @@ class _PromotedCarsScreenState extends State<PromotedCarsScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => AdDetailScreen(ad: ad),
+                          builder:
+                              (_) =>
+                                  promotedAd.isRental
+                                      ? RentalAdDetailScreen(ad: promotedAd.ad)
+                                      : AdDetailScreen(ad: promotedAd.ad),
                         ),
                       );
                     },
-                    child: _buildCarCard(ad),
+                    child: _buildCarCard(promotedAd),
                   ),
                 ),
               );
@@ -438,8 +475,11 @@ class _PromotedCarsScreenState extends State<PromotedCarsScreen> {
     );
   }
 
-  Widget _buildCarCard(Ad ad) {
+  Widget _buildCarCard(_PromotedAd promotedAd) {
+    final ad = promotedAd.ad;
     final car = ad.car;
+    final priceText =
+        promotedAd.isRental ? '${ad.dailyPrice} ل.س / يوم' : '${ad.price} ل.س';
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -526,7 +566,7 @@ class _PromotedCarsScreenState extends State<PromotedCarsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${ad.price} ل.س',
+                  priceText,
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.bold,

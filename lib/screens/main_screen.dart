@@ -85,8 +85,14 @@ class _MainScreenState extends State<MainScreen>
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
+    final rawAccountType = authService.currentUser?['account_type'];
+    final accountTypeStr =
+        rawAccountType is Map
+            ? (rawAccountType['name'] ?? rawAccountType['type'] ?? '')
+                .toString()
+            : (rawAccountType ?? '').toString();
     final isCompanyAccount =
-        authService.currentUser?['account_type'] == 'company' ||
+        accountTypeStr.toLowerCase() == 'company' ||
         authService.currentUser?['account_type_id'] == 2;
     final screens = _buildScreens(isCompanyAccount);
     final safeIndex = _currentIndex.clamp(0, screens.length - 1);
@@ -148,7 +154,7 @@ class _MainScreenState extends State<MainScreen>
                 Icons.car_rental_outlined,
                 'التأجير',
               ), // الأيقونة المحدثة للتأجير
-              _buildCenterPlusButton(),
+              _buildNavItem(2, Icons.local_offer_outlined, 'العروض'),
               _buildNavItem(3, Icons.gavel_rounded, 'المزادات'),
               _buildNavItem(
                 4,
@@ -190,34 +196,6 @@ class _MainScreenState extends State<MainScreen>
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCenterPlusButton() {
-    return GestureDetector(
-      onTap: () => _onTabTapped(2),
-      child: Container(
-        width: 52,
-        height: 52,
-        transform: Matrix4.translationValues(0, -8, 0),
-        decoration: BoxDecoration(
-          color: const Color(0xFF0F4C81),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0F4C81).withOpacity(0.35),
-              blurRadius: 12,
-              spreadRadius: 1,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: const Icon(
-          Icons.local_offer_outlined,
-          color: Colors.white,
-          size: 24,
         ),
       ),
     );

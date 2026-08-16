@@ -39,7 +39,8 @@ class _CompanyPublicProfileScreenState
   late Future<List<Rating>> _ratingsFuture;
 
   int get _companyId =>
-      int.tryParse('${widget.company['id'] ?? widget.company['user_id']}') ?? 0;
+      int.tryParse('${widget.company['id'] ?? widget.company['user_id']}') ??
+      0;
 
   String get _companyName =>
       (widget.company['name'] ??
@@ -201,7 +202,8 @@ class _CompanyPublicProfileScreenState
                             fit: BoxFit.cover,
                             memCacheWidth: 800,
                             placeholder:
-                                (_, __) => Container(color: AppColors.primary),
+                                (_, __) =>
+                                    Container(color: AppColors.primary),
                             errorWidget:
                                 (_, __, ___) =>
                                     Container(color: AppColors.primary),
@@ -412,9 +414,8 @@ class _CompanyPublicProfileScreenState
                                 icon: const Icon(Icons.phone_outlined),
                                 style: IconButton.styleFrom(
                                   foregroundColor: AppColors.primary,
-                                  backgroundColor: AppColors.primary.withValues(
-                                    alpha: 0.08,
-                                  ),
+                                  backgroundColor: AppColors.primary
+                                      .withValues(alpha: 0.08),
                                   minimumSize: const Size(48, 48),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
@@ -468,6 +469,7 @@ class _CompanyPublicProfileScreenState
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                   style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                                     backgroundColor:
                                         (_isFollowing ?? false)
                                             ? Colors.black45
@@ -719,7 +721,9 @@ class _CompanyPublicProfileScreenState
                 ),
               )
             else
-              ...ratings.take(6).map((r) => _buildRatingItem(r)),
+              ...ratings
+                  .take(6)
+                  .map((r) => _buildRatingItem(r)),
           ],
         );
       },
@@ -781,10 +785,7 @@ class _CompanyPublicProfileScreenState
               Expanded(
                 child: Text(
                   r.raterName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
               Row(
@@ -835,8 +836,9 @@ class _CompanyPublicProfileScreenState
                       final starIndex = i + 1;
                       return IconButton(
                         onPressed:
-                            () =>
-                                setDialogState(() => selectedStars = starIndex),
+                            () => setDialogState(
+                              () => selectedStars = starIndex,
+                            ),
                         icon: Icon(
                           starIndex <= selectedStars
                               ? Icons.star
@@ -866,6 +868,7 @@ class _CompanyPublicProfileScreenState
                 ElevatedButton(
                   onPressed: () => Navigator.pop(dialogContext, true),
                   style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                     backgroundColor: AppColors.primary,
                   ),
                   child: const Text(

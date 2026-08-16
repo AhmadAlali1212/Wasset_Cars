@@ -211,6 +211,7 @@ class _CompanyBulkUploadScreenState extends State<CompanyBulkUploadScreen> {
                           : 'رفع كل السيارات (${_batch.length})',
                     ),
                     style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                       backgroundColor: const Color(0xFF0F4C81),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -333,14 +334,20 @@ class _CompanyBulkUploadScreenState extends State<CompanyBulkUploadScreen> {
               itemBuilder:
                   (context) => [
                     if (entry.status != _UploadStatus.success)
-                      const PopupMenuItem(value: 'edit', child: Text('تعديل')),
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Text('تعديل'),
+                      ),
                     if (entry.status == _UploadStatus.failed)
                       const PopupMenuItem(
                         value: 'retry',
                         child: Text('إعادة المحاولة'),
                       ),
                     if (entry.status != _UploadStatus.success)
-                      const PopupMenuItem(value: 'delete', child: Text('حذف')),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text('حذف'),
+                      ),
                   ],
             ),
         ],
@@ -379,11 +386,7 @@ class _CompanyBulkUploadScreenState extends State<CompanyBulkUploadScreen> {
         label,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: color,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-        ),
+        style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -500,9 +503,7 @@ class _BatchCarFormScreenState extends State<_BatchCarFormScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FB),
       appBar: AppBar(
-        title: Text(
-          widget.existing == null ? 'سيارة جديدة للدفعة' : 'تعديل سيارة الدفعة',
-        ),
+        title: Text(widget.existing == null ? 'سيارة جديدة للدفعة' : 'تعديل سيارة الدفعة'),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.white,
@@ -518,21 +519,18 @@ class _BatchCarFormScreenState extends State<_BatchCarFormScreen> {
             _buildTextField(
               controller: _makeController,
               label: 'الماركة',
-              validator:
-                  (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
             ),
             _buildTextField(
               controller: _modelController,
               label: 'الموديل',
-              validator:
-                  (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
             ),
             _buildTextField(
               controller: _yearController,
               label: 'سنة الصنع',
               keyboardType: TextInputType.number,
-              validator:
-                  (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -557,16 +555,12 @@ class _BatchCarFormScreenState extends State<_BatchCarFormScreen> {
               controller: _descriptionController,
               label: 'الوصف',
               maxLines: 4,
-              validator:
-                  (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
             ),
             _buildTextField(
               controller: _priceController,
-              label:
-                  'سعر البيع (اختياري — اتركه فارغاً لحفظ السيارة بدون إعلان)',
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              label: 'سعر البيع (اختياري — اتركه فارغاً لحفظ السيارة بدون إعلان)',
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -575,11 +569,7 @@ class _BatchCarFormScreenState extends State<_BatchCarFormScreen> {
                 child: AbsorbPointer(
                   child: TextFormField(
                     controller: _locationController,
-                    validator:
-                        (v) =>
-                            (v == null || v.trim().isEmpty)
-                                ? 'الرجاء اختيار الموقع'
-                                : null,
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'الرجاء اختيار الموقع' : null,
                     decoration: InputDecoration(
                       labelText: 'الموقع',
                       suffixIcon: const Icon(Icons.location_on_outlined),
@@ -602,6 +592,7 @@ class _BatchCarFormScreenState extends State<_BatchCarFormScreen> {
           child: ElevatedButton(
             onPressed: _save,
             style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
               backgroundColor: const Color(0xFF0F4C81),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(

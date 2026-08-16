@@ -371,6 +371,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         color: Colors.white,
                       ),
                       style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                         backgroundColor: AppColors.primary,
                         minimumSize: const Size(double.infinity, 52),
                         shape: RoundedRectangleBorder(
@@ -396,6 +397,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                         color: Colors.white,
                       ),
                       style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                         backgroundColor: const Color(0xFF1F7A3C),
                         minimumSize: const Size(double.infinity, 52),
                         shape: RoundedRectangleBorder(

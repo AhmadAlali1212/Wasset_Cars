@@ -150,6 +150,7 @@ class SubscriptionPlanCard extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => onSelected(plan),
                 style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(

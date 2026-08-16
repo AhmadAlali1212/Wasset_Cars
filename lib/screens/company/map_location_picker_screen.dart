@@ -281,6 +281,7 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
                             onPressed:
                                 _pickedPosition == null ? null : _confirmSelection,
                             style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                               backgroundColor: AppColors.primaryNavy,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(

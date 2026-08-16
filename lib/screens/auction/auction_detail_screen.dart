@@ -721,6 +721,7 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
                         size: 18,
                       ),
               style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                 backgroundColor: AppColors.primary,
                 minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
@@ -765,6 +766,7 @@ class _AuctionDetailScreenState extends State<AuctionDetailScreen> {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                           backgroundColor: buttons[i].color,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(

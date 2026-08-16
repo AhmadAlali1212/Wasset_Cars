@@ -341,6 +341,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           : ElevatedButton(
                             onPressed: _isActing ? null : _subscribe,
                             style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                               backgroundColor: AppColors.primary,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(

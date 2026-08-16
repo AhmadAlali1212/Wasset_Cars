@@ -134,6 +134,7 @@ class WorkshopDetailScreen extends StatelessWidget {
                       onPressed:
                           () => ContactLauncher.call(context, workshop.phone),
                       style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

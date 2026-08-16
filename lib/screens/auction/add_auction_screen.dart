@@ -586,6 +586,7 @@ class _AddAuctionScreenState extends State<AddAuctionScreen> {
                       ? null
                       : (_isLastStep ? _submit : _next),
               style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
@@ -679,6 +680,7 @@ class _AuctionSubscriptionRequiredSheet extends StatelessWidget {
             ElevatedButton(
               onPressed: onSubscribeTap,
               style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
