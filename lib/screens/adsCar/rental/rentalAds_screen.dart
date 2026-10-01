@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mators_car/models/ad_model.dart';
+import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/rental/rentalAd_details_creen.dart';
-import 'package:mators_car/services/promotion_service.dart';
-import 'package:mators_car/services/rental_ad_service.dart';
-import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/services/controllers/promotion_service.dart';
+import 'package:mators_car/services/controllers/rental_ad_service.dart';
 import 'package:mators_car/widgets/app_home_style_header.dart';
 import 'package:mators_car/widgets/section_header.dart';
+import 'package:mators_car/widgets/common/skeleton_loader.dart';
+import 'package:mators_car/widgets/sellCars/home_common_widgets.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
+import 'package:mators_car/widgets/rental/rental_ads/rental_ad_cards.dart';
 
 class RentalAdsScreen extends StatefulWidget {
   const RentalAdsScreen({super.key});
@@ -32,20 +35,51 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
   List<Ad>? _viewAllList;
   String? _viewAllTitle;
 
+  // ⬅️ جديد: تحميل تدريجي حقيقي (Infinite Scroll) بدل جلب كل الصفحات
+  // دفعة واحدة عند فتح الشاشة — نفس النمط المطبّق بالشاشة الرئيسية.
+  static const int _pageSize = 20;
+  int _currentPage = 1;
+  bool _hasMorePages = true;
+  bool _isLoadingMore = false;
+  final ScrollController _scrollController = ScrollController();
+  Set<int> _promotedOwnerIds = {};
+
   @override
   void initState() {
     super.initState();
     _loadRentalAds();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 400) {
+      _loadMoreRentalAds();
+    }
   }
 
   Future<void> _loadRentalAds() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _currentPage = 1;
+      _hasMorePages = true;
     });
 
     try {
-      final rawAds = await _rentalAdService.getAllRentalAds();
+      final rawAds = await _rentalAdService.getAllRentalAds(
+        page: 1,
+        perPage: _pageSize,
+      );
       final ads = rawAds.map((json) => Ad.fromJson(json)).toList();
 
       // "مميز" هنا يعني: صاحب هذا الإعلان لديه عرض ترويجي نشط حالياً.
@@ -72,7 +106,9 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
       if (!mounted) return;
       setState(() {
         rentalAds = withFeatured;
+        _promotedOwnerIds = promotedOwnerIds;
         _isLoading = false;
+        _hasMorePages = rawAds.length >= _pageSize;
       });
     } catch (e) {
       if (!mounted) return;
@@ -80,6 +116,43 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
         _errorMessage = 'تعذر جلب إعلانات التأجير: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _loadMoreRentalAds() async {
+    if (_isLoadingMore || !_hasMorePages || _isLoading) return;
+
+    setState(() => _isLoadingMore = true);
+    try {
+      final nextPage = _currentPage + 1;
+      final rawAds = await _rentalAdService.getAllRentalAds(
+        page: nextPage,
+        perPage: _pageSize,
+      );
+      final newAds =
+          rawAds
+              .map((json) => Ad.fromJson(json))
+              .map(
+                (ad) => ad.copyWith(
+                  isFeatured: _promotedOwnerIds.contains(ad.userId),
+                ),
+              )
+              .toList();
+
+      final existingIds = rentalAds.map((a) => a.id).toSet();
+
+      if (!mounted) return;
+      setState(() {
+        rentalAds = [
+          ...rentalAds,
+          ...newAds.where((a) => !existingIds.contains(a.id)),
+        ];
+        _currentPage = nextPage;
+        _hasMorePages = rawAds.length >= _pageSize;
+        _isLoadingMore = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
@@ -97,12 +170,6 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
       _viewAllTitle = title;
       _viewAllList = ads;
     });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   double _parseDailyPrice(Ad ad) => double.tryParse(ad.dailyPrice) ?? 0;
@@ -138,7 +205,7 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
     if (_viewAllList != null) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(_viewAllTitle ?? 'إعلانات التأجير'),
+          title: Text(_viewAllTitle ?? context.tr('rental_ads')),
           centerTitle: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -155,7 +222,10 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
           itemBuilder: (context, index) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: _buildRentalAdCard(_viewAllList![index], context),
+              child: RentalAdCard(
+                ad: _viewAllList![index],
+                onTap: () => _navigateToDetail(_viewAllList![index], context),
+              ),
             );
           },
         ),
@@ -163,17 +233,17 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: context.adaptiveScaffoldBg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Column(
             children: [
               AppHomeStyleHeader(
-                title: 'إعلانات تأجير السيارات',
+                title: context.tr('rental_cars_ads'),
                 searchController: _searchController,
                 onSearchChanged: (v) => setState(() => _searchQuery = v),
-                searchHint: 'ابحث عن سيارة للتأجير...',
+                searchHint: context.tr('search_rental_cars'),
                 onFilterTap: _showSortSheet,
               ),
               const SizedBox(height: 16),
@@ -199,15 +269,16 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'تصفية الإعلانات',
+              Text(
+                context.tr('filter_ads'),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.sort),
-                title: const Text('الأحدث'),
-                trailing: _sortMode == 'newest' ? const Icon(Icons.check) : null,
+                title: Text(context.tr('newest')),
+                trailing:
+                    _sortMode == 'newest' ? const Icon(Icons.check) : null,
                 onTap: () {
                   setState(() => _sortMode = 'newest');
                   Navigator.pop(context);
@@ -215,7 +286,7 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.attach_money),
-                title: const Text('الأقل سعرًا'),
+                title: Text(context.tr('lowest_price')),
                 trailing:
                     _sortMode == 'price_asc' ? const Icon(Icons.check) : null,
                 onTap: () {
@@ -225,7 +296,7 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.attach_money_outlined),
-                title: const Text('الأعلى سعرًا'),
+                title: Text(context.tr('highest_price')),
                 trailing:
                     _sortMode == 'price_desc' ? const Icon(Icons.check) : null,
                 onTap: () {
@@ -242,7 +313,7 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
 
   Widget _buildBody(List<Ad> filteredAds, List<Ad> featuredAds) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const SkeletonCarGrid(itemCount: 6);
     }
 
     if (_errorMessage != null) {
@@ -270,6 +341,7 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
     return RefreshIndicator(
       onRefresh: _loadRentalAds,
       child: ListView(
+        controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 16),
         children: [
@@ -278,10 +350,10 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SectionHeader(
-                title: 'إعلانات مميزة',
+                title: context.tr('featured_ads'),
                 onViewAll:
                     () => _showAllAds(
-                      'إعلانات مميزة',
+                      context.tr('featured_ads'),
                       rentalAds.where((ad) => ad.isFeatured).toList(),
                     ),
               ),
@@ -297,9 +369,10 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                 itemBuilder: (context, index) {
                   return Padding(
                     padding: const EdgeInsets.only(left: 16),
-                    child: _buildFeaturedRentalCard(
-                      featuredAds[index],
-                      context,
+                    child: FeaturedRentalCard(
+                      ad: featuredAds[index],
+                      onTap:
+                          () => _navigateToDetail(featuredAds[index], context),
                     ),
                   );
                 },
@@ -312,17 +385,18 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: SectionHeader(
-              title: 'جميع إعلانات التأجير',
-              onViewAll: () => _showAllAds('جميع إعلانات التأجير', rentalAds),
+              title: context.tr('all_rental_ads'),
+              onViewAll:
+                  () => _showAllAds(context.tr('all_rental_ads'), rentalAds),
             ),
           ),
           const SizedBox(height: 12),
 
           filteredAds.isEmpty
-              ? const Center(
+              ? Center(
                 child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: Text('لا توجد نتائج تطابق بحثك'),
+                  padding: const EdgeInsets.all(32.0),
+                  child: Text(context.tr('no_matching_results')),
                 ),
               )
               : ListView.builder(
@@ -333,425 +407,23 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                 itemBuilder: (context, index) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildRentalAdCard(filteredAds[index], context),
+                    child: RentalAdCard(
+                      ad: filteredAds[index],
+                      onTap:
+                          () => _navigateToDetail(filteredAds[index], context),
+                    ),
                   );
                 },
               ),
+          // ⬅️ جديد: مؤشر تحميل الصفحة التالية (Infinite Scroll)
+          if (_searchQuery.isEmpty)
+            LoadMoreFooter(
+              isLoadingMore: _isLoadingMore,
+              hasMorePages: _hasMorePages,
+              showEndMessage: rentalAds.isNotEmpty,
+            ),
         ],
       ),
-    );
-  }
-
-  // الكرت المميز الكبير (مطابق للصورة تماماً بمقاييس الكود الخاص بك)
-  Widget _buildFeaturedRentalCard(Ad ad, BuildContext context) {
-    return GestureDetector(
-      onTap: () => _navigateToDetail(ad, context),
-      child: Container(
-        width: 320,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                  child: _buildImageWidget(
-                    ad.car.images.isNotEmpty ? ad.car.images[0] : null,
-                    width: double.infinity,
-                    height: 160,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 4,
-                      horizontal: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.pink,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'مميز',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const Positioned(
-                  top: 12,
-                  left: 12,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white,
-                    radius: 16,
-                    child: Icon(
-                      Icons.favorite_border,
-                      color: Colors.black,
-                      size: 18,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.image_outlined,
-                          size: 12,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '1 / ${ad.car.images.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${ad.car.make} ${ad.car.model} ${ad.car.year}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'ل.س ${ad.dailyPrice} / يوم',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.location_on_outlined,
-                              size: 14,
-                              color: AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                ad.car.location,
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'أو ل.س ${ad.monthlyPrice} / شهر',
-                        style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          ad.status == 'pending'
-                              ? AppColors.warning.withValues(alpha: 0.1)
-                              : AppColors.success.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      ad.status == 'pending' ? 'قيد المراجعة' : 'متوفر',
-                      style: TextStyle(
-                        color:
-                            ad.status == 'pending'
-                                ? AppColors.warning
-                                : AppColors.success,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // الكرت الصغير الأفقي لـ "جميع إعلانات التأجير" (مطابق للصورة)
-  Widget _buildRentalAdCard(Ad ad, BuildContext context) {
-    return GestureDetector(
-      onTap: () => _navigateToDetail(ad, context),
-      child: Container(
-        height: 115,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.grey.shade100),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(15),
-                    bottomRight: Radius.circular(15),
-                  ),
-                  child: _buildImageWidget(
-                    ad.car.images.isNotEmpty ? ad.car.images[0] : null,
-                    width: 130,
-                    height: 115,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const Positioned(
-                  top: 6,
-                  right: 6,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.white,
-                    radius: 12,
-                    child: Icon(
-                      Icons.favorite_border,
-                      size: 14,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 6,
-                  left: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 5,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '1 / ${ad.car.images.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 8),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${ad.car.make} ${ad.car.model} ${ad.car.year}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          size: 12,
-                          color: Colors.grey,
-                        ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on_outlined,
-                          size: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Text(
-                            ad.car.location,
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 11,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Text(
-                      'ل.س ${ad.dailyPrice} / يوم',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'أو ل.س ${ad.monthlyPrice} / شهر',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 10,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                                ad.status == 'pending'
-                                    ? AppColors.warning.withValues(alpha: 0.1)
-                                    : AppColors.success.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            ad.status == 'pending' ? 'قيد المراجعة' : 'متوفر',
-                            style: TextStyle(
-                              color:
-                                  ad.status == 'pending'
-                                      ? AppColors.warning
-                                      : AppColors.success,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImageWidget(
-    String? imageUrl, {
-    double? width,
-    double? height,
-    BoxFit fit = BoxFit.cover,
-  }) {
-    if (imageUrl != null && imageUrl.isNotEmpty) {
-      return CachedNetworkImage(
-        imageUrl: imageUrl,
-        width: width,
-        height: height,
-        fit: fit,
-        // نحدد حجم فك الترميز حسب عرض العرض الفعلي إن كان معروفاً، بحد
-        // أقصى معقول، بدل تحميل الصورة الأصلية كاملة دائماً.
-        memCacheWidth:
-            (width != null && width.isFinite) ? (width * 2).round() : 600,
-        placeholder: (context, url) => Container(color: Colors.grey.shade200),
-        errorWidget: (context, url, error) {
-          return Image.asset(
-            'assets/image/intro.jpg',
-            width: width,
-            height: height,
-            fit: fit,
-          );
-        },
-      );
-    }
-    return Image.asset(
-      'assets/image/intro.jpg',
-      width: width,
-      height: height,
-      fit: fit,
     );
   }
 }
