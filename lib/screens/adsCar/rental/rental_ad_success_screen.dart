@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mators_car/models/ad_model.dart';
+import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/compents/car_image_slider.dart';
 import 'package:mators_car/screens/adsCar/compents/car_info_card.dart';
 import 'package:mators_car/ulits/colors.dart';

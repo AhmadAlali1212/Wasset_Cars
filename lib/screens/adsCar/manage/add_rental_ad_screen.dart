@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:mators_car/screens/adsCar/manage/car_picker_sheet.dart';
-import 'package:mators_car/services/rental_ad_service.dart';
+import 'package:mators_car/services/controllers/rental_ad_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 
 /// شاشة إنشاء إعلان تأجير جديد (تعمل لكل من حساب الفرد وحساب المعرض
@@ -78,17 +78,13 @@ class _AddRentalAdScreenState extends State<AddRentalAdScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCarId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('الرجاء اختيار السيارة أولاً')),
-      );
+      AppSnackbar.showWarning(context, title: 'الرجاء اختيار السيارة أولاً');
       return;
     }
 
     final dailyPrice = double.tryParse(_dailyPriceController.text.trim()) ?? 0;
     if (dailyPrice <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل سعراً يومياً صحيحاً أكبر من صفر')),
-      );
+      AppSnackbar.showWarning(context, title: 'أدخل سعراً يومياً صحيحاً أكبر من صفر');
       return;
     }
     final monthlyPriceText = _monthlyPriceController.text.trim();
@@ -96,7 +92,6 @@ class _AddRentalAdScreenState extends State<AddRentalAdScreen> {
         monthlyPriceText.isEmpty ? null : double.tryParse(monthlyPriceText);
 
     setState(() => _isSubmitting = true);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
       if (_isEditMode) {
@@ -107,9 +102,8 @@ class _AddRentalAdScreenState extends State<AddRentalAdScreen> {
           monthlyPrice: monthlyPrice,
           rentalConditions: _conditionsController.text,
         );
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('تم تحديث إعلان التأجير بنجاح')),
-        );
+        if (!mounted) return;
+        AppSnackbar.showSuccess(context, title: 'تم تحديث إعلان التأجير بنجاح');
       } else {
         await _rentalAdService.createRentalAd(
           carId: _selectedCarId!,
@@ -117,29 +111,26 @@ class _AddRentalAdScreenState extends State<AddRentalAdScreen> {
           monthlyPrice: monthlyPrice,
           rentalConditions: _conditionsController.text,
         );
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'تم إنشاء إعلان التأجير بنجاح، بانتظار مراجعة الأدمن',
-            ),
-          ),
+        if (!mounted) return;
+        AppSnackbar.showSuccess(
+          context,
+          title: 'تم إنشاء إعلان التأجير بنجاح',
+          subtitle: 'بانتظار مراجعة الأدمن',
         );
       }
       if (!mounted) return;
       Navigator.pop(context, true);
     } on DioException catch (e) {
-      print("Status Code: ${e.response?.statusCode}");
-      print("Response: ${e.response?.data}");
-
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(e.response?.data.toString() ?? e.message ?? "حدث خطأ"),
-        ),
+      debugPrint('DioException in add_rental_ad_screen: ${e.response?.statusCode} ${e.response?.data}');
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر حفظ إعلان التأجير',
+        debugMessage: e,
       );
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشلت العملية: $e')),
-      );
+      if (!mounted) return;
+      AppSnackbar.showError(context, title: 'فشلت العملية', debugMessage: e);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

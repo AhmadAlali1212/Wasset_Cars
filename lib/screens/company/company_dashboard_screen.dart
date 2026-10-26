@@ -9,6 +9,14 @@ import 'package:mators_car/screens/promotions/subscription_screen.dart';
 import 'package:mators_car/screens/auction/my_auctions_screen.dart';
 import 'package:mators_car/screens/auction/my_bids_screen.dart';
 import 'package:mators_car/screens/adsCar/rental/my_rental_bookings_screen.dart';
+import 'package:mators_car/screens/adsCar/rental/incoming_rental_bookings_screen.dart';
+import 'package:mators_car/screens/messages/conversations_list_screen.dart';
+import 'package:mators_car/screens/favorites/favorites_screen.dart';
+import 'package:mators_car/screens/ratings/pending_ratings_screen.dart';
+import 'package:mators_car/screens/disputes/my_disputes_screen.dart';
+import 'package:mators_car/screens/settings/blocked_users_screen.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
 
 class CompanyDashboardScreen extends StatelessWidget {
   const CompanyDashboardScreen({super.key});
@@ -16,13 +24,11 @@ class CompanyDashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FB),
+      backgroundColor: context.adaptiveScaffoldBg,
       appBar: AppBar(
-        title: const Text('لوحة المعرض'),
+        title: Text(context.tr('company_dashboard')),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -37,14 +43,14 @@ class CompanyDashboardScreen extends StatelessWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text(
-                    'مرحبا بك في لوحة المعرض',
+                    context.tr('welcome_company_dashboard'),
                     style: TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                   SizedBox(height: 10),
                   Text(
-                    'ادارة السيارات مع الشحن والفحوصات بسهولة.',
+                    context.tr('manage_cars_easily'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -57,8 +63,8 @@ class CompanyDashboardScreen extends StatelessWidget {
             const SizedBox(height: 24),
             _buildCard(
               context,
-              title: 'سيارات المعرض',
-              subtitle: 'عرض وتعديل السيارات المضافة',
+              title: context.tr('inventory'),
+              subtitle: context.tr('inventory_subtitle'),
               icon: Icons.storefront_outlined,
               onTap: () {
                 Navigator.push(
@@ -75,8 +81,8 @@ class CompanyDashboardScreen extends StatelessWidget {
             ),
             _buildCard(
               context,
-              title: 'إعلانات البيع والتأجير',
-              subtitle: 'إدارة إعلانات البيع والتأجير الخاصة بالمعرض',
+              title: context.tr('sales_rental_ads'),
+              subtitle: context.tr('sales_rental_ads_subtitle'),
               icon: Icons.campaign_outlined,
               onTap: () {
                 Navigator.push(
@@ -87,8 +93,8 @@ class CompanyDashboardScreen extends StatelessWidget {
             ),
             _buildCard(
               context,
-              title: 'المحفظة',
-              subtitle: 'عرض الرصيد وسجل المعاملات',
+              title: context.tr('wallet'),
+              subtitle: context.tr('wallet_subtitle'),
               icon: Icons.account_balance_wallet_outlined,
               onTap: () {
                 Navigator.push(
@@ -101,8 +107,8 @@ class CompanyDashboardScreen extends StatelessWidget {
             ),
             _buildCard(
               context,
-              title: 'الاشتراك',
-              subtitle: 'عرض حالة اشتراكك وتجديده أو إلغاؤه',
+              title: context.tr('subscription'),
+              subtitle: context.tr('subscription_subtitle'),
               icon: Icons.workspace_premium_outlined,
               onTap: () {
                 Navigator.push(
@@ -113,8 +119,8 @@ class CompanyDashboardScreen extends StatelessWidget {
             ),
             _buildCard(
               context,
-              title: 'العروض الترويجية',
-              subtitle: 'إضافة وإدارة العروض الترويجية لمعرضك',
+              title: context.tr('promotions'),
+              subtitle: context.tr('promotions_subtitle'),
               icon: Icons.local_offer_outlined,
               onTap: () {
                 Navigator.push(
@@ -125,8 +131,8 @@ class CompanyDashboardScreen extends StatelessWidget {
             ),
             _buildCard(
               context,
-              title: 'إدارة المزادات',
-              subtitle: 'أنشئ مزادات على سياراتك وعدّلها أو احذفها',
+              title: context.tr('manage_auctions'),
+              subtitle: context.tr('manage_auctions_subtitle'),
               icon: Icons.gavel_outlined,
               onTap: () {
                 Navigator.push(
@@ -137,8 +143,8 @@ class CompanyDashboardScreen extends StatelessWidget {
             ),
             _buildCard(
               context,
-              title: 'مزايداتي',
-              subtitle: 'المزادات التي زايدت عليها ونتيجتها',
+              title: context.tr('my_bids'),
+              subtitle: context.tr('my_bids_subtitle'),
               icon: Icons.emoji_events_outlined,
               onTap: () {
                 Navigator.push(
@@ -149,8 +155,72 @@ class CompanyDashboardScreen extends StatelessWidget {
             ),
             _buildCard(
               context,
-              title: 'حجوزات التأجير',
-              subtitle: 'الحجوزات التي قمت بها على سيارات مؤجَّرة',
+              title: context.tr('pending_ratings'),
+              subtitle: context.tr('pending_ratings_subtitle'),
+              icon: Icons.star_border,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PendingRatingsScreen(),
+                  ),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: context.tr('my_disputes'),
+              subtitle: context.tr('my_disputes_subtitle'),
+              icon: Icons.gavel_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MyDisputesScreen()),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: context.tr('blocked_users'),
+              subtitle: context.tr('manage_blocked_users'),
+              icon: Icons.block,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BlockedUsersScreen()),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: context.tr('favorites'),
+              subtitle: context.tr('favorites_subtitle'),
+              icon: Icons.favorite_border,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FavoritesScreen()),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: context.tr('messages'),
+              subtitle: context.tr('messages_subtitle'),
+              icon: Icons.chat_bubble_outline,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ConversationsListScreen(),
+                  ),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: context.tr('my_bookings'),
+              subtitle: context.tr('my_bookings_subtitle'),
               icon: Icons.event_available_outlined,
               onTap: () {
                 Navigator.push(
@@ -163,8 +233,22 @@ class CompanyDashboardScreen extends StatelessWidget {
             ),
             _buildCard(
               context,
-              title: 'إضافة سيارة جديدة',
-              subtitle: 'ارفع سيارة جديدة مع صور ومواصفات',
+              title: context.tr('incoming_bookings'),
+              subtitle: context.tr('incoming_bookings_subtitle'),
+              icon: Icons.inbox_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const IncomingRentalBookingsScreen(),
+                  ),
+                );
+              },
+            ),
+            _buildCard(
+              context,
+              title: context.tr('add_new_car'),
+              subtitle: context.tr('add_new_car_subtitle'),
               icon: Icons.add_circle_outline,
               onTap: () {
                 Navigator.push(
@@ -177,8 +261,8 @@ class CompanyDashboardScreen extends StatelessWidget {
             ),
             _buildCard(
               context,
-              title: 'ملف المعرض',
-              subtitle: 'تعديل بيانات المعرض وتسجيل الخروج',
+              title: context.tr('company_profile'),
+              subtitle: context.tr('company_profile_subtitle'),
               icon: Icons.person_outline,
               onTap: () {
                 Navigator.push(
@@ -205,7 +289,7 @@ class CompanyDashboardScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.adaptiveCardBg,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(

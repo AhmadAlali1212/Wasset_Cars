@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/screens/adsCar/manage/add_rental_ad_screen.dart';
-import 'package:mators_car/services/rental_ad_service.dart';
+import 'package:mators_car/screens/adsCar/rental/manage_rental_availability_screen.dart';
+import 'package:mators_car/services/controllers/rental_ad_service.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/widgets/common/skeleton_loader.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
 
 /// عنصر واجهة قابل لإعادة الاستخدام يعرض إعلانات التأجير الخاصة بالمستخدم
 /// (فردي أو معرض) مع إمكانية: نشر الإعلان، تعديل بياناته، حذف الإعلان.
@@ -34,13 +39,13 @@ class _RentalAdsListState extends State<RentalAdsList> {
     switch (status) {
       case 'active':
       case 'approved':
-        return 'منشور';
+        return context.tr('published');
       case 'pending':
-        return 'بانتظار المراجعة';
+        return context.tr('pending_review');
       case 'rejected':
-        return 'مرفوض';
+        return context.tr('rejected');
       default:
-        return status ?? 'غير معروف';
+        return status ?? context.tr('unknown');
     }
   }
 
@@ -64,8 +69,7 @@ class _RentalAdsListState extends State<RentalAdsList> {
     List<Map<String, dynamic>> ads,
   ) {
     if (_statusFilter == 'all') return ads;
-    final isActive =
-        (String? s) => s == 'active' || s == 'approved';
+    final isActive = (String? s) => s == 'active' || s == 'approved';
     if (_statusFilter == 'inactive') {
       return ads.where((ad) => !isActive(ad['status']?.toString())).toList();
     }
@@ -89,12 +93,18 @@ class _RentalAdsListState extends State<RentalAdsList> {
           final filter = filters[index];
           final selected = _statusFilter == filter['key'];
           return ChoiceChip(
-            label: Text(filter['label']!),
+            label: Text(
+              filter['key'] == 'active'
+                  ? context.tr('active_ads')
+                  : filter['key'] == 'inactive'
+                  ? context.tr('inactive_ads')
+                  : context.tr('all'),
+            ),
             selected: selected,
             onSelected: (_) => setState(() => _statusFilter = filter['key']!),
             showCheckmark: false,
             selectedColor: AppColors.primary,
-            backgroundColor: Colors.white,
+            backgroundColor: context.adaptiveCardBg,
             labelStyle: TextStyle(
               color: selected ? Colors.white : Colors.black87,
               fontWeight: FontWeight.w600,
@@ -121,40 +131,43 @@ class _RentalAdsListState extends State<RentalAdsList> {
   }
 
   Future<void> _publishAd(Map<String, dynamic> ad) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       await _rentalAdService.publishRentalAd(ad['id'] as int);
       await _refresh();
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('تم نشر إعلان التأجير بنجاح')),
+      if (!mounted) return;
+      AppSnackbar.showSuccess(
+        context,
+        title: context.tr('rental_ad_published'),
       );
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشل نشر إعلان التأجير: $e')),
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: context.tr('publish_rental_failed'),
+        debugMessage: e,
       );
     }
   }
 
   Future<void> _deleteAd(Map<String, dynamic> ad) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (dialogContext) => AlertDialog(
-            title: const Text('حذف إعلان التأجير'),
-            content: const Text('هل أنت متأكد من حذف إعلان التأجير هذا؟'),
+            title: Text(context.tr('delete_rental_ad')),
+            content: Text(context.tr('confirm_delete_rental_ad')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('إلغاء'),
+                child: Text(context.tr('cancel')),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
                 style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                  foregroundColor: Colors.white,
                   backgroundColor: AppColors.error,
                 ),
-                child: const Text('حذف'),
+                child: Text(context.tr('delete')),
               ),
             ],
           ),
@@ -164,12 +177,14 @@ class _RentalAdsListState extends State<RentalAdsList> {
     try {
       await _rentalAdService.deleteRentalAd(ad['id'] as int);
       await _refresh();
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('تم حذف إعلان التأجير بنجاح')),
-      );
+      if (!mounted) return;
+      AppSnackbar.showSuccess(context, title: context.tr('rental_ad_deleted'));
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشل حذف إعلان التأجير: $e')),
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: context.tr('delete_rental_failed'),
+        debugMessage: e,
       );
     }
   }
@@ -177,10 +192,7 @@ class _RentalAdsListState extends State<RentalAdsList> {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
-        _buildStatusFilterChips(),
-        Expanded(child: _buildList()),
-      ],
+      children: [_buildStatusFilterChips(), Expanded(child: _buildList())],
     );
   }
 
@@ -189,7 +201,7 @@ class _RentalAdsListState extends State<RentalAdsList> {
       future: _adsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonList(itemCount: 6);
         }
         if (snapshot.hasError) {
           return Center(
@@ -216,7 +228,11 @@ class _RentalAdsListState extends State<RentalAdsList> {
                 Center(
                   child: Column(
                     children: [
-                      Icon(Icons.car_rental_outlined, size: 70, color: Colors.grey),
+                      Icon(
+                        Icons.car_rental_outlined,
+                        size: 70,
+                        color: Colors.grey,
+                      ),
                       SizedBox(height: 14),
                       Text('لا توجد إعلانات تأجير بعد'),
                     ],
@@ -266,7 +282,7 @@ class _RentalAdsListState extends State<RentalAdsList> {
 
               return Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.adaptiveCardBg,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -314,8 +330,10 @@ class _RentalAdsListState extends State<RentalAdsList> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('اليومي: $dailyPrice ل.س'
-                            '${monthlyPrice.isNotEmpty && monthlyPrice != 'null' ? ' • الشهري: $monthlyPrice ل.س' : ''}'),
+                        Text(
+                          'اليومي: $dailyPrice ل.س'
+                          '${monthlyPrice.isNotEmpty && monthlyPrice != 'null' ? ' • الشهري: $monthlyPrice ل.س' : ''}',
+                        ),
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -344,6 +362,17 @@ class _RentalAdsListState extends State<RentalAdsList> {
                         _editAd(ad);
                       } else if (value == 'publish') {
                         _publishAd(ad);
+                      } else if (value == 'availability') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) => ManageRentalAvailabilityScreen(
+                                  rentalAdId: ad['id'] as int,
+                                  carTitle: carTitle,
+                                ),
+                          ),
+                        );
                       } else if (value == 'delete') {
                         _deleteAd(ad);
                       }
@@ -359,6 +388,11 @@ class _RentalAdsListState extends State<RentalAdsList> {
                               value: 'publish',
                               child: Text('نشر الإعلان'),
                             ),
+                          // ⬅️ جديد: تحديد الأيام التي تكون فيها السيارة غير متاحة للتأجير
+                          const PopupMenuItem(
+                            value: 'availability',
+                            child: Text('أيام عدم التوفر'),
+                          ),
                           const PopupMenuItem(
                             value: 'delete',
                             child: Text('حذف الإعلان'),

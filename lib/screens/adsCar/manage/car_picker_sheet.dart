@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mators_car/services/company_service.dart';
+import 'package:mators_car/services/controllers/company_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/constans.dart';
 

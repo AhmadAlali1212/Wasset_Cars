@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/screens/individual/individual_add_car_screen.dart';
 import 'package:mators_car/screens/individual/individual_ads_screen.dart';
 import 'package:mators_car/screens/individual/individual_inventory_screen.dart';
@@ -8,9 +7,18 @@ import 'package:mators_car/screens/individual/individual_wallet_screen.dart';
 import 'package:mators_car/screens/auction/my_auctions_screen.dart';
 import 'package:mators_car/screens/auction/my_bids_screen.dart';
 import 'package:mators_car/screens/adsCar/rental/my_rental_bookings_screen.dart';
+import 'package:mators_car/screens/adsCar/rental/incoming_rental_bookings_screen.dart';
+import 'package:mators_car/screens/messages/conversations_list_screen.dart';
+import 'package:mators_car/screens/favorites/favorites_screen.dart';
+import 'package:mators_car/screens/ratings/pending_ratings_screen.dart';
+import 'package:mators_car/screens/disputes/my_disputes_screen.dart';
+import 'package:mators_car/screens/settings/blocked_users_screen.dart';
 import 'package:mators_car/screens/company/following_companies_screen.dart';
-import 'package:mators_car/services/company_service.dart';
+import 'package:mators_car/services/controllers/company_service.dart';
 import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
+import 'package:mators_car/widgets/individual/dashboard_widgets.dart';
 
 class IndividualDashboardScreen extends StatefulWidget {
   const IndividualDashboardScreen({super.key});
@@ -41,17 +49,15 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FB),
+      backgroundColor: context.adaptiveScaffoldBg,
       appBar: AppBar(
-        title: const Text('لوحة المستخدم'),
+        title: Text(context.tr('dashboard')),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         actions: [
           IconButton(
             icon: const Icon(Icons.person_outline),
-            tooltip: 'الحساب',
+            tooltip: context.tr('profile'),
             onPressed: () {
               Navigator.push(
                 context,
@@ -72,7 +78,7 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                'تعذر جلب بيانات الحساب\n${snapshot.error}',
+                '${context.tr('account_data_load_failed')}\n${snapshot.error}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),
@@ -109,44 +115,11 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F4C81),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'حساب الفرد',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'أهلاً بك في لوحة التحكم',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'الرصيد: $balance $currency',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  DashboardHeaderCard(balance: '$balance', currency: currency),
                   const SizedBox(height: 20),
-                  _buildActionTile(
-                    title: 'سياراتي',
-                    subtitle: '${myCars.length} سيارة',
+                  DashboardActionTile(
+                    title: context.tr('my_cars'),
+                    subtitle: '${myCars.length} ${context.tr('cars_count')}',
                     icon: Icons.directions_car_outlined,
                     onTap: () {
                       Navigator.push(
@@ -157,9 +130,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       );
                     },
                   ),
-                  _buildActionTile(
-                    title: 'المحفظة',
-                    subtitle: 'اطلع على الرصيد والحركات',
+                  DashboardActionTile(
+                    title: context.tr('wallet'),
+                    subtitle: context.tr('wallet_subtitle_individual'),
                     icon: Icons.account_balance_wallet_outlined,
                     onTap: () {
                       Navigator.push(
@@ -170,9 +143,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       );
                     },
                   ),
-                  _buildActionTile(
-                    title: 'إعلاناتي',
-                    subtitle: 'اعرض إعلاناتك المنشورة أو قيد الانتظار',
+                  DashboardActionTile(
+                    title: context.tr('my_ads'),
+                    subtitle: context.tr('my_ads_subtitle'),
                     icon: Icons.campaign_outlined,
                     onTap: () {
                       Navigator.push(
@@ -183,9 +156,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       );
                     },
                   ),
-                  _buildActionTile(
-                    title: 'مزاداتي',
-                    subtitle: 'أنشئ مزاداً على إحدى سياراتك أو عدّله',
+                  DashboardActionTile(
+                    title: context.tr('my_auctions'),
+                    subtitle: context.tr('my_auctions_subtitle'),
                     icon: Icons.gavel_outlined,
                     onTap: () {
                       Navigator.push(
@@ -196,22 +169,85 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       );
                     },
                   ),
-                  _buildActionTile(
-                    title: 'مزايداتي',
-                    subtitle: 'المزادات التي زايدت عليها ونتيجتها',
+                  DashboardActionTile(
+                    title: context.tr('my_bids'),
+                    subtitle: context.tr('my_bids_subtitle'),
                     icon: Icons.emoji_events_outlined,
                     onTap: () {
                       Navigator.push(
                         context,
+                        MaterialPageRoute(builder: (_) => const MyBidsScreen()),
+                      );
+                    },
+                  ),
+                  DashboardActionTile(
+                    title: context.tr('pending_ratings'),
+                    subtitle: context.tr('pending_ratings_subtitle'),
+                    icon: Icons.star_border,
+                    onTap: () {
+                      Navigator.push(
+                        context,
                         MaterialPageRoute(
-                          builder: (_) => const MyBidsScreen(),
+                          builder: (_) => const PendingRatingsScreen(),
                         ),
                       );
                     },
                   ),
-                  _buildActionTile(
-                    title: 'حجوزات التأجير',
-                    subtitle: 'الحجوزات التي قمت بها على سيارات مؤجَّرة',
+                  DashboardActionTile(
+                    title: context.tr('my_disputes'),
+                    subtitle: context.tr('my_disputes_subtitle'),
+                    icon: Icons.gavel_outlined,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const MyDisputesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  DashboardActionTile(
+                    title: context.tr('blocked_users'),
+                    subtitle: context.tr('manage_blocked_users'),
+                    icon: Icons.block,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BlockedUsersScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  DashboardActionTile(
+                    title: context.tr('favorites'),
+                    subtitle: context.tr('favorites_subtitle'),
+                    icon: Icons.favorite_border,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const FavoritesScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  DashboardActionTile(
+                    title: context.tr('messages'),
+                    subtitle: context.tr('messages_subtitle'),
+                    icon: Icons.chat_bubble_outline,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ConversationsListScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  DashboardActionTile(
+                    title: context.tr('my_bookings'),
+                    subtitle: context.tr('my_bookings_subtitle'),
                     icon: Icons.event_available_outlined,
                     onTap: () {
                       Navigator.push(
@@ -222,9 +258,22 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       );
                     },
                   ),
-                  _buildActionTile(
-                    title: 'الشركات التي أتابعها',
-                    subtitle: 'تابع أحدث سيارات وعروض معارضك المفضلة',
+                  DashboardActionTile(
+                    title: context.tr('incoming_bookings'),
+                    subtitle: context.tr('incoming_bookings_subtitle'),
+                    icon: Icons.inbox_outlined,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const IncomingRentalBookingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  DashboardActionTile(
+                    title: context.tr('following_companies'),
+                    subtitle: context.tr('following_companies_subtitle'),
                     icon: Icons.storefront_outlined,
                     onTap: () {
                       Navigator.push(
@@ -235,9 +284,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       );
                     },
                   ),
-                  _buildActionTile(
-                    title: 'أضف سيارة جديدة',
-                    subtitle: 'أضف السيارة وسيتم مراجعتها',
+                  DashboardActionTile(
+                    title: context.tr('add_new_car'),
+                    subtitle: context.tr('car_review_subtitle'),
                     icon: Icons.add_circle_outline,
                     onTap: () {
                       Navigator.push(
@@ -248,9 +297,9 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                       );
                     },
                   ),
-                  _buildActionTile(
-                    title: 'الحساب الشخصي',
-                    subtitle: 'تعديل بيانات الحساب وتسجيل الخروج',
+                  DashboardActionTile(
+                    title: context.tr('profile'),
+                    subtitle: context.tr('edit_account_logout'),
                     icon: Icons.person_outline,
                     onTap: () {
                       Navigator.push(
@@ -262,32 +311,17 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                     },
                   ),
                   const SizedBox(height: 14),
-                  const Text(
-                    'كل السيارات المتاحة',
+                  Text(
+                    context.tr('all_available_cars'),
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   const SizedBox(height: 12),
                   if (allCars.isEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(top: 16),
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: const Text(
-                        'لا توجد سيارات منشورة حالياً على التطبيق.',
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                    )
+                    const DashboardEmptyCarsHint()
                   else
                     Column(
                       children:
                           allCars.take(3).map((car) {
-                            final title =
-                                '${car['make'] ?? ''} ${car['model'] ?? ''}';
-                            final year = car['year']?.toString() ?? '';
-                            final status = car['approval_status'] ?? car['status'] ?? 'غير معروف';
                             final imageUrl = AppConstants.resolveImageUrl(
                               car['images'] is List &&
                                       (car['images'] as List).isNotEmpty
@@ -295,88 +329,19 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
                                   : null,
                             );
 
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.03),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
+                            return DashboardAvailableCarTile(
+                              car: car,
+                              imageUrl: imageUrl,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) =>
+                                            const IndividualInventoryScreen(),
                                   ),
-                                ],
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.all(16),
-                                leading:
-                                    imageUrl != null
-                                        ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            14,
-                                          ),
-                                          child: CachedNetworkImage(
-                                            imageUrl: imageUrl,
-                                            width: 70,
-                                            height: 70,
-                                            fit: BoxFit.cover,
-                                            memCacheWidth: 140,
-                                            placeholder:
-                                                (_, __) => Container(
-                                                  width: 70,
-                                                  height: 70,
-                                                  color: const Color(0xFFF0F0F0),
-                                                ),
-                                            errorWidget:
-                                                (_, __, ___) => Container(
-                                                  width: 70,
-                                                  height: 70,
-                                                  color: const Color(
-                                                    0xFFF0F0F0,
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.directions_car,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
-                                          ),
-                                        )
-                                        : Container(
-                                          width: 70,
-                                          height: 70,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF0F0F0),
-                                            borderRadius: BorderRadius.circular(
-                                              14,
-                                            ),
-                                          ),
-                                          child: const Icon(
-                                            Icons.directions_car,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                title: Text(
-                                  title.trim().isEmpty
-                                      ? 'سيارة غير محددة'
-                                      : title,
-                                ),
-                                subtitle: Text('$year • الحالة: $status'),
-                                trailing: const Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 18,
-                                ),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) =>
-                                              const IndividualInventoryScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
+                                );
+                              },
                             );
                           }).toList(),
                     ),
@@ -385,29 +350,6 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildActionTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        tileColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFF0F4C81).withOpacity(0.1),
-          child: Icon(icon, color: const Color(0xFF0F4C81)),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-        onTap: onTap,
       ),
     );
   }

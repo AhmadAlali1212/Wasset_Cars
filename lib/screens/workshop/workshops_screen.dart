@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mators_car/models/workshop_model.dart';
+import 'package:mators_car/data/models/workshop_model.dart';
 import 'package:mators_car/widgets/section_header.dart';
 import 'package:mators_car/widgets/workshop/workshop_card.dart';
-import '../../ulits/mock_data.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import '../../data/mock_data.dart';
 import 'workshop_detail_screen.dart';
 
 class WorkshopsScreen extends StatelessWidget {
@@ -20,10 +21,9 @@ class WorkshopsScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('ابحث داخل قائمة الورش من الشاشة الرئيسية'),
-                ),
+              AppSnackbar.showInfo(
+                context,
+                title: 'ابحث داخل قائمة الورش من الشاشة الرئيسية',
               );
             },
           ),
@@ -46,12 +46,10 @@ class WorkshopsScreen extends StatelessWidget {
                         child: SectionHeader(
                           title: 'ورشات مميزة',
                           onViewAll: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
+                            AppSnackbar.showInfo(
+                              context,
+                              title:
                                   'عرض الورشات المميزة متاح من القائمة الحالية',
-                                ),
-                              ),
                             );
                           },
                         ),
@@ -100,10 +98,9 @@ class WorkshopsScreen extends StatelessWidget {
                       child: SectionHeader(
                         title: 'جميع الورشات',
                         onViewAll: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('جميع الورشات معروضة أدناه مباشرة'),
-                            ),
+                          AppSnackbar.showInfo(
+                            context,
+                            title: 'جميع الورشات معروضة أدناه مباشرة',
                           );
                         },
                       ),

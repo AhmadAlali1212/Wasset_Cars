@@ -4,9 +4,13 @@ import 'package:mators_car/screens/company/company_public_profile_screen.dart';
 import 'package:mators_car/screens/company/company_wallet_screen.dart';
 import 'package:mators_car/screens/promotions/promotions_list_screen.dart';
 import 'package:mators_car/screens/promotions/subscription_screen.dart';
+import 'package:mators_car/screens/settings/edit_profile_screen.dart';
 import 'package:mators_car/screens/settings/settings_screen.dart';
-import 'package:mators_car/services/auth_serivces.dart';
-import 'package:mators_car/services/subscription_service.dart';
+import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/subscription_service.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
 
 class CompanyProfileScreen extends StatefulWidget {
   const CompanyProfileScreen({super.key});
@@ -56,21 +60,19 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUser ?? {};
-    final name = user['name'] ?? 'اسم الشركة';
-    final email = user['email'] ?? 'البريد الإلكتروني غير متوفر';
-    final phone = user['phone_number'] ?? 'رقم الجوال غير متوفر';
+    final name = user['name'] ?? context.tr('company_name');
+    final email = user['email'] ?? context.tr('email_unavailable');
+    final phone = user['phone_number'] ?? context.tr('phone_unavailable');
     final accountType = _accountTypeLabel(user['account_type']);
     final followersRaw = user['followers_count'];
     final followersText = followersRaw != null ? followersRaw.toString() : '—';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FB),
+      backgroundColor: context.adaptiveScaffoldBg,
       appBar: AppBar(
-        title: const Text('ملف المعرض'),
+        title: Text(context.tr('company_profile')),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -86,8 +88,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder:
-                        (_) => CompanyPublicProfileScreen(company: user),
+                    builder: (_) => CompanyPublicProfileScreen(company: user),
                   ),
                 );
               },
@@ -96,7 +97,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
-                  color: Colors.white,
+                  color: context.adaptiveCardBg,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
@@ -106,118 +107,130 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
                   ],
                 ),
                 child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'مرحبا بك في معرضك',
-                    style: TextStyle(fontSize: 14, color: Colors.black54),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('welcome_your_company'),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: context.adaptiveTextSecondary,
                       ),
-                      if (_isSubscribed == true) ...[
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (_isSubscribed == true) ...[
+                          const SizedBox(width: 6),
+                          Tooltip(
+                            message: context.tr('verified_subscriber'),
+                            child: Icon(
+                              Icons.verified,
+                              color: Color(0xFF0F4C81),
+                              size: 22,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    // بطاقة عدد المتابعين
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.people_alt_outlined,
+                          size: 18,
+                          color: Colors.black54,
+                        ),
                         const SizedBox(width: 6),
-                        const Tooltip(
-                          message: 'حساب موثّق (مشترك)',
-                          child: Icon(
-                            Icons.verified,
-                            color: Color(0xFF0F4C81),
-                            size: 22,
+                        Text(
+                          '$followersText ${context.tr('followers')}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: context.adaptiveTextPrimary,
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  // بطاقة عدد المتابعين
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.people_alt_outlined,
-                        size: 18,
-                        color: Colors.black54,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$followersText متابع',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Text('نوع الحساب: $accountType'),
-                  const SizedBox(height: 8),
-                  Text('البريد الإلكتروني: $email'),
-                  const SizedBox(height: 8),
-                  Text('رقم الهاتف: $phone'),
+                    ),
+                    const SizedBox(height: 14),
+                    Text('${context.tr('account_type')}: $accountType'),
+                    const SizedBox(height: 8),
+                    Text('${context.tr('email')}: $email'),
+                    const SizedBox(height: 8),
+                    Text('${context.tr('phone')}: $phone'),
 
-                  // إن لم يكن الحساب مشتركاً (وبالتالي غير موثّق)، نعرض دعوة
-                  // واضحة للاشتراك بدل ترك المستخدم يبحث عنها بنفسه.
-                  if (_isSubscribed == false) ...[
-                    const SizedBox(height: 16),
-                    InkWell(
-                      onTap: _goToSubscription,
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF0F4C81).withValues(
-                            alpha: 0.08,
+                    // إن لم يكن الحساب مشتركاً (وبالتالي غير موثّق)، نعرض دعوة
+                    // واضحة للاشتراك بدل ترك المستخدم يبحث عنها بنفسه.
+                    if (_isSubscribed == false) ...[
+                      const SizedBox(height: 16),
+                      InkWell(
+                        onTap: _goToSubscription,
+                        borderRadius: BorderRadius.circular(14),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 14,
                           ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.verified_outlined,
-                              color: Color(0xFF0F4C81),
-                            ),
-                            const SizedBox(width: 10),
-                            const Expanded(
-                              child: Text(
-                                'وثّق حسابك عبر الاشتراك ليظهر لعملائك شارة '
-                                'التوثيق ويكسبهم ثقة أكبر بمعرضك',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Color(0xFF0F4C81),
-                                  fontWeight: FontWeight.w600,
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF0F4C81,
+                            ).withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.verified_outlined,
+                                color: Color(0xFF0F4C81),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  context.tr('subscription_verification_hint'),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF0F4C81),
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ),
-                            const Icon(
-                              Icons.arrow_forward_ios,
-                              size: 14,
-                              color: Color(0xFF0F4C81),
-                            ),
-                          ],
+                              const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 14,
+                                color: Color(0xFF0F4C81),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
-              ),
+                ),
               ),
             ),
             const SizedBox(height: 24),
             _buildOptionCard(
-              title: 'إعدادات المعرض',
+              title: context.tr('edit_profile'),
+              icon: Icons.edit_outlined,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                );
+              },
+            ),
+            _buildOptionCard(
+              title: context.tr('company_settings'),
               icon: Icons.settings_outlined,
               onTap: () {
                 Navigator.push(
@@ -227,7 +240,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
               },
             ),
             _buildOptionCard(
-              title: 'سجل المعاملات',
+              title: context.tr('transaction_history'),
               icon: Icons.history,
               onTap: () {
                 Navigator.push(
@@ -239,7 +252,10 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
               },
             ),
             _buildOptionCard(
-              title: _isSubscribed == true ? 'الاشتراك (نشط ✓)' : 'الاشتراك',
+              title:
+                  _isSubscribed == true
+                      ? context.tr('active_subscription')
+                      : context.tr('subscription'),
               icon:
                   _isSubscribed == true
                       ? Icons.verified
@@ -247,30 +263,28 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
               onTap: _goToSubscription,
             ),
             _buildOptionCard(
-              title: 'إدارة العروض الترويجية',
+              title: context.tr('manage_promotions'),
               icon: Icons.campaign_outlined,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const PromotionsScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const PromotionsScreen()),
                 );
               },
             ),
             _buildOptionCard(
-              title: 'فريق الدعم',
+              title: context.tr('support_team'),
               icon: Icons.support_agent_outlined,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('للتواصل مع الدعم: support@matorscar.com'),
-                  ),
+                AppSnackbar.showInfo(
+                  context,
+                  title: context.tr('contact_support'),
+                  subtitle: 'support@matorscar.com',
                 );
               },
             ),
             _buildOptionCard(
-              title: 'تسجيل الخروج',
+              title: context.tr('logout'),
               icon: Icons.logout_outlined,
               color: Colors.red.shade600,
               textColor: Colors.red.shade700,
@@ -303,9 +317,9 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     }
     switch (value.trim().toLowerCase()) {
       case 'company':
-        return 'معرض';
+        return context.tr('company');
       case 'individual':
-        return 'فرد';
+        return context.tr('individual');
       default:
         return value;
     }
@@ -316,12 +330,12 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
     required IconData icon,
     required VoidCallback onTap,
     Color color = const Color(0xFF0F4C81),
-    Color textColor = Colors.black,
+    Color? textColor,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.adaptiveCardBg,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
@@ -346,7 +360,7 @@ class _CompanyProfileScreenState extends State<CompanyProfileScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: textColor,
+            color: textColor ?? context.adaptiveTextPrimary,
           ),
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 18),

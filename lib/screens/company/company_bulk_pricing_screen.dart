@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mators_car/services/ads_service.dart';
-import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/services/controllers/ads_service.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 
 /// شاشة خاصة بالمعرض لتسعير الإعلانات "المسودة" (draft) الناتجة عن الرفع
 /// الجماعي للسيارات (Bulk Upload) دون سعر، ثم تحديث أسعارها دفعة واحدة
@@ -49,7 +51,6 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
   }
 
   Future<void> _submitPrices(List<Map<String, dynamic>> drafts) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final payload = <Map<String, dynamic>>[];
 
     for (final ad in drafts) {
@@ -62,22 +63,22 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
     }
 
     if (payload.isEmpty) {
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('أدخل سعراً واحداً على الأقل قبل الحفظ')),
-      );
+      AppSnackbar.showWarning(context, title: context.tr('enter_one_price'));
       return;
     }
 
     setState(() => _isSubmitting = true);
     try {
       await _adsService.bulkUpdatePrices(payload);
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('تم تحديث أسعار الإعلانات بنجاح')),
-      );
+      if (!mounted) return;
+      AppSnackbar.showSuccess(context, title: context.tr('prices_updated'));
       await _refresh();
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشل تحديث الأسعار: $e')),
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: context.tr('prices_update_failed'),
+        debugMessage: e,
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -87,13 +88,11 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FB),
+      backgroundColor: context.adaptiveScaffoldBg,
       appBar: AppBar(
-        title: const Text('تسعير الإعلانات المسودة'),
+        title: Text(context.tr('draft_ads_pricing')),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _draftAdsFuture,
@@ -104,7 +103,7 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                'تعذر جلب الإعلانات المسودة\n${snapshot.error}',
+                '${context.tr('draft_ads_load_failed')}\n${snapshot.error}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),
@@ -113,12 +112,12 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
 
           final drafts = snapshot.data ?? [];
           if (drafts.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
                 padding: EdgeInsets.all(20),
                 child: Text(
-                  'لا توجد إعلانات مسودة بانتظار التسعير حالياً.\n'
-                  'تظهر هنا السيارات التي تم رفعها بشكل جماعي دون تحديد سعر.',
+                  '${context.tr('no_draft_ads')}\n'
+                  '${context.tr('draft_ads_hint')}',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -143,7 +142,7 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
                 return Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.adaptiveCardBg,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -171,10 +170,10 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
                             decimal: true,
                           ),
                           decoration: InputDecoration(
-                            labelText: 'السعر',
+                            labelText: context.tr('price'),
                             isDense: true,
                             filled: true,
-                            fillColor: AppColors.surfaceLight,
+                            fillColor: context.adaptiveCardBg,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -200,7 +199,7 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
               return ElevatedButton(
                 onPressed: enabled ? () => _submitPrices(drafts) : null,
                 style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                  foregroundColor: Colors.white,
                   backgroundColor: const Color(0xFF0F4C81),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -217,7 +216,7 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
                             strokeWidth: 2,
                           ),
                         )
-                        : const Text('حفظ الأسعار'),
+                        : Text(context.tr('save_prices')),
               );
             },
           ),

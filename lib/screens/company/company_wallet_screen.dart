@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/screens/home/payment_methods_screen.dart';
-import 'package:mators_car/services/company_service.dart';
+import 'package:mators_car/services/controllers/company_service.dart';
 import 'package:mators_car/services/stripe_payment_helper.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
+import 'package:mators_car/widgets/company/wallet_widgets.dart';
 
 class CompanyWalletScreen extends StatefulWidget {
   const CompanyWalletScreen({super.key});
@@ -39,8 +43,6 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
     String paymentMethod,
     double amount,
   ) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
     Map<String, dynamic> intent;
     try {
       intent = await _companyService.createStripeTopupIntent(
@@ -49,8 +51,10 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشل إنشاء عملية الشحن: ${e.toString()}')),
+      AppSnackbar.showError(
+        context,
+        title: context.tr('topup_start_failed'),
+        debugMessage: e,
       );
       return;
     }
@@ -63,12 +67,10 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
 
     if (clientSecret == null) {
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'لم يتم استلام بيانات الدفع من السيرفر (client_secret).',
-          ),
-        ),
+      AppSnackbar.showError(
+        context,
+        title: context.tr('payment_start_failed'),
+        subtitle: context.tr('payment_data_missing'),
       );
       return;
     }
@@ -81,13 +83,13 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
 
     switch (result.outcome) {
       case StripePaymentOutcome.canceled:
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('تم إلغاء عملية الدفع')),
-        );
+        AppSnackbar.showInfo(context, title: context.tr('payment_cancelled'));
         return;
       case StripePaymentOutcome.failed:
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('فشلت عملية الدفع: ${result.message}')),
+        AppSnackbar.showError(
+          context,
+          title: context.tr('payment_failed'),
+          subtitle: result.message,
         );
         return;
       case StripePaymentOutcome.success:
@@ -114,42 +116,39 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
     await _refreshWallet();
     if (!mounted) return;
     final creditedNow = statusValue == 'credited';
-    scaffoldMessenger.showSnackBar(
-      SnackBar(
-        duration: Duration(seconds: creditedNow ? 4 : 8),
-        content: Text(
-          creditedNow
-              ? 'تم شحن المحفظة بنجاح ✅'
-              : 'تم الدفع بنجاح من طرف Stripe، لكن الرصيد لم يتحدّث بعد.\n'
-                  'هذا يعني عادة أن Stripe Webhook لم يصل للسيرفر بعد '
-                  '(بالتطوير المحلي تأكد أن أمر "stripe listen --forward-to '
-                  '..." شغّال). اسحب الشاشة للأسفل لتحديث الرصيد لاحقاً.',
-        ),
-      ),
-    );
+    if (creditedNow) {
+      AppSnackbar.showSuccess(
+        context,
+        title: context.tr('wallet_topup_success'),
+      );
+    } else {
+      AppSnackbar.showInfo(
+        context,
+        title: context.tr('payment_pending_balance'),
+        subtitle: context.tr('refresh_balance_later'),
+      );
+    }
   }
 
   Future<void> _showChargeDialog() async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
     await showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('أدخل المبلغ'),
+          title: Text(context.tr('enter_amount')),
           content: TextField(
             controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'المبلغ بالدولار الأمريكي (USD)',
-              hintText: 'مثال: 50',
-              helperText: 'الحد الأقصى لكل عملية شحن: 10,000 USD',
+            decoration: InputDecoration(
+              labelText: context.tr('amount_usd'),
+              hintText: context.tr('amount_example_50'),
+              helperText: context.tr('topup_limit'),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -157,21 +156,18 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
                 final amount = double.tryParse(amountText);
 
                 if (amount == null || amount <= 0) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('أدخل مبلغاً صحيحاً أكبر من صفر'),
-                    ),
+                  AppSnackbar.showWarning(
+                    context,
+                    title: context.tr('valid_positive_amount'),
                   );
                   return;
                 }
 
                 if (amount > StripePaymentHelper.maxTopupAmountUsd) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'الحد الأقصى لعملية الشحن الواحدة هو 10,000 USD',
-                      ),
-                    ),
+                  AppSnackbar.showWarning(
+                    context,
+                    title: context.tr('topup_limit_exceeded'),
+                    subtitle: context.tr('topup_limit'),
                   );
                   return;
                 }
@@ -194,7 +190,7 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
                   ),
                 );
               },
-              child: const Text('متابعة'),
+              child: Text(context.tr('continue')),
             ),
           ],
         );
@@ -203,14 +199,13 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
   }
 
   Future<void> _showWithdrawDialog() async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final destinationController = TextEditingController();
 
     await showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('سحب الرصيد'),
+          title: Text(context.tr('withdraw_balance')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -219,17 +214,17 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
-                decoration: const InputDecoration(
-                  labelText: 'المبلغ',
-                  hintText: 'مثال: 50000',
+                decoration: InputDecoration(
+                  labelText: context.tr('amount'),
+                  hintText: context.tr('amount_example_50000'),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: destinationController,
-                decoration: const InputDecoration(
-                  labelText: 'جهة الاستلام',
-                  hintText: 'مثال: وكيل دمشق - رقم مرجعي 123',
+                decoration: InputDecoration(
+                  labelText: context.tr('withdrawal_destination'),
+                  hintText: context.tr('withdrawal_destination_example'),
                 ),
               ),
             ],
@@ -237,7 +232,7 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('إلغاء'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -246,17 +241,17 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
                 final destination = destinationController.text.trim();
 
                 if (amount == null || amount <= 0) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('أدخل مبلغاً صحيحاً أكبر من صفر'),
-                    ),
+                  AppSnackbar.showWarning(
+                    context,
+                    title: context.tr('valid_positive_amount'),
                   );
                   return;
                 }
 
                 if (destination.isEmpty) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('أدخل جهة استلام السحب')),
+                  AppSnackbar.showWarning(
+                    context,
+                    title: context.tr('enter_withdrawal_destination'),
                   );
                   return;
                 }
@@ -270,17 +265,20 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
                   );
                   if (!mounted) return;
                   await _refreshWallet();
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('تم إرسال طلب السحب بنجاح')),
+                  AppSnackbar.showSuccess(
+                    context,
+                    title: context.tr('withdrawal_request_sent'),
                   );
                 } catch (e) {
                   if (!mounted) return;
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('فشل طلب السحب: ${e.toString()}')),
+                  AppSnackbar.showError(
+                    context,
+                    title: context.tr('withdrawal_request_failed'),
+                    debugMessage: e,
                   );
                 }
               },
-              child: const Text('تأكيد'),
+              child: Text(context.tr('confirm')),
             ),
           ],
         );
@@ -291,13 +289,11 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FB),
+      backgroundColor: context.adaptiveScaffoldBg,
       appBar: AppBar(
-        title: const Text('المحفظة'),
+        title: Text(context.tr('wallet')),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _walletFuture,
@@ -337,102 +333,19 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F4C81),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'الرصيد الحالي',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '$balance $currency',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: _showChargeDialog,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFF0F4C81),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 14),
-                                  child: Text('شحن المحفظة'),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: _showWithdrawDialog,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: const BorderSide(color: Colors.white),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 14),
-                                  child: Text('سحب الرصيد'),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  WalletBalanceCard(
+                    balance: balance,
+                    currency: currency,
+                    onTopUp: _showChargeDialog,
+                    onWithdraw: _showWithdrawDialog,
                   ),
                   const SizedBox(height: 24),
-                  const Text(
-                    'آخر الحركات',
+                  Text(
+                    context.tr('recent_transactions'),
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   const SizedBox(height: 16),
-                  if (transactions.isEmpty)
-                    const Center(child: Text('لا توجد حركات بعد'))
-                  else
-                    Column(
-                      children:
-                          transactions.take(10).map((transaction) {
-                            final title =
-                                transaction['title'] ??
-                                transaction['description'] ??
-                                'عملية';
-                            final amount =
-                                (transaction['amount'] ??
-                                        transaction['value'] ??
-                                        0)
-                                    .toString();
-                            final date =
-                                transaction['date'] ??
-                                transaction['created_at'] ??
-                                'غير محدد';
-
-                            return _buildTransactionItem(
-                              title: title,
-                              amount: amount,
-                              date: date,
-                            );
-                          }).toList(),
-                    ),
+                  WalletTransactionsList(transactions: transactions),
                 ],
               ),
             ),
@@ -467,56 +380,5 @@ class _CompanyWalletScreenState extends State<CompanyWalletScreen> {
             : null;
     if (list == null) return [];
     return list.map((item) => Map<String, dynamic>.from(item as Map)).toList();
-  }
-
-  Widget _buildTransactionItem({
-    required String title,
-    required String amount,
-    required String date,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  date,
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            amount,
-            style: TextStyle(
-              color: amount.startsWith('-') ? Colors.red : Colors.green,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

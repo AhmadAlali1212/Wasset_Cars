@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/screens/company/company_inventory_screen.dart';
 import 'package:mators_car/screens/individual/individual_add_car_screen.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
 
 /// شاشة "سياراتي" الخاصة بحساب الفرد.
 /// تُبنى فوق نفس الشاشة المشتركة [CompanyInventoryScreen] التي يستخدمها
@@ -13,9 +14,9 @@ class IndividualInventoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CompanyInventoryScreen(
-      title: 'سياراتي',
-      emptyStateTitle: 'لم تتم إضافة سيارات بعد',
-      emptyStateSubtitle: 'استخدم زر الإضافة لإدخال أول سيارة لك',
+      title: context.tr('my_cars'),
+      emptyStateTitle: context.tr('no_cars_added_individual'),
+      emptyStateSubtitle: context.tr('add_first_car_hint'),
       emptyStateIcon: Icons.directions_car_filled_outlined,
       addCarScreenBuilder: (_) => const IndividualAddCarScreen(),
     );

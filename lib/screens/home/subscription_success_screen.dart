@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/ulits/colors.dart';
 
-import '../../models/subscription_model.dart';
+import 'package:mators_car/data/models/subscription_model.dart';
 
 class SubscriptionSuccessScreen extends StatelessWidget {
   final Subscription subscription;

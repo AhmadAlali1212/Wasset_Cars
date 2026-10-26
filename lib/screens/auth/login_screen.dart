@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:mators_car/screens/auth/acconnt_screen.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/screens/auth/forget_screen.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
 
-import '../../services/auth_serivces.dart';
+import 'package:mators_car/services/controllers/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -73,15 +74,20 @@ class _LoginScreenState extends State<LoginScreen>
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(
+        AppSnackbar.showError(
           context,
-        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+          title: 'تعذّر تسجيل الدخول',
+          subtitle: errorMessage,
+        );
       } catch (e) {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ غير متوقع: ${e.toString()}')),
+        AppSnackbar.showError(
+          context,
+          title: 'تعذّر تسجيل الدخول',
+          subtitle: 'حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى',
+          debugMessage: e,
         );
       } finally {
         if (mounted) {

@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:mators_car/services/company_service.dart';
+import 'package:mators_car/services/controllers/company_service.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/widgets/company/edit_car_widgets.dart';
 
 class EditCarScreen extends StatefulWidget {
   final int carId;
@@ -36,17 +37,51 @@ class _EditCarScreenState extends State<EditCarScreen> {
   final List<XFile> _newImages = [];
   static const int _maxImages = 5;
 
+  // ⬅️ جديد: إدارة فيديوهات السيارة — عرض الموجودة، حذفها، وإضافة جديدة
+  // (بأقصى 2 فيديو إجمالاً)، مباشرة عبر /cars/{id}/videos بدل انتظار حفظ
+  // بقية التعديلات، حتى لا يفقد المستخدم صوره/بياناته المُعدَّلة لو فشل
+  // رفع الفيديو لأي سبب.
+  List<String> _existingVideos = [];
+  static const int _maxVideos = 2;
+  static const int _maxVideoSizeMb = 20;
+  bool _isUploadingVideo = false;
+  String? _removingVideoUrl;
+
   @override
   void initState() {
     super.initState();
     final car = widget.car;
 
-    _makeController = TextEditingController(text: (car['make'] ?? car['name'] ?? '').toString());
-    _modelController = TextEditingController(text: (car['model'] ?? '').toString());
-    _yearController = TextEditingController(text: (car['year'] ?? '').toString());
-    _descriptionController = TextEditingController(text: (car['description'] ?? '').toString());
+    _makeController = TextEditingController(
+      text: (car['make'] ?? car['name'] ?? '').toString(),
+    );
+    _modelController = TextEditingController(
+      text: (car['model'] ?? '').toString(),
+    );
+    _yearController = TextEditingController(
+      text: (car['year'] ?? '').toString(),
+    );
+    _descriptionController = TextEditingController(
+      text: (car['description'] ?? '').toString(),
+    );
     _condition = (car['condition'] ?? 'used').toString();
     _primaryImageUrl = _getPrimaryImage(car['images'] ?? car['image']);
+
+    // ⬅️ جديد: تحميل الفيديوهات الحالية للسيارة (إن وُجدت)
+    final videosData = car['videos'];
+    if (videosData is List) {
+      _existingVideos =
+          videosData
+              .map((item) {
+                if (item is String) return item;
+                if (item is Map) {
+                  return (item['url'] ?? item['video_path'] ?? '').toString();
+                }
+                return '';
+              })
+              .where((url) => url.isNotEmpty)
+              .toList();
+    }
   }
 
   @override
@@ -63,7 +98,8 @@ class _EditCarScreenState extends State<EditCarScreen> {
     if (imagesData is List && imagesData.isNotEmpty) {
       final firstItem = imagesData.first;
       if (firstItem is String) raw = firstItem;
-      if (firstItem is Map && firstItem['url'] != null) raw = firstItem['url'].toString();
+      if (firstItem is Map && firstItem['url'] != null)
+        raw = firstItem['url'].toString();
       if (firstItem is Map && firstItem['image_path'] != null) {
         raw = firstItem['image_path'].toString();
       }
@@ -77,22 +113,26 @@ class _EditCarScreenState extends State<EditCarScreen> {
   // تعديل الصور يتطلب multipart/form-data (مختلف عن التعديل النصي العادي).
   Future<void> _pickImages() async {
     if (_newImages.length >= _maxImages) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('الحد الأقصى $_maxImages صور')),
-      );
+      AppSnackbar.showWarning(context, title: 'الحد الأقصى $_maxImages صور');
       return;
     }
     try {
       final remainingSlots = _maxImages - _newImages.length;
-      final picked = await _imagePicker.pickMultiImage(imageQuality: 85);
+      final picked = await _imagePicker.pickMultiImage(
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
       if (picked.isEmpty) return;
       final filesToAdd = picked.take(remainingSlots).toList();
       setState(() => _newImages.addAll(filesToAdd));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      AppSnackbar.showError(
         context,
-      ).showSnackBar(SnackBar(content: Text('تعذر اختيار الصور: $e')));
+        title: 'تعذّر اختيار الصور',
+        debugMessage: e,
+      );
     }
   }
 
@@ -109,14 +149,18 @@ class _EditCarScreenState extends State<EditCarScreen> {
     final fields = <String, dynamic>{
       'make': _makeController.text.trim(),
       'model': _modelController.text.trim(),
-      'year': int.tryParse(_yearController.text.trim()) ?? _yearController.text.trim(),
+      'year':
+          int.tryParse(_yearController.text.trim()) ??
+          _yearController.text.trim(),
       'condition': _condition,
       'description': _descriptionController.text.trim(),
     };
 
     // نحافظ على الإحداثيات الأصلية إن وُجدت لأن الـ endpoint يقبلها ضمن نفس الطلب
-    if (widget.car['latitude'] != null) fields['latitude'] = widget.car['latitude'];
-    if (widget.car['longitude'] != null) fields['longitude'] = widget.car['longitude'];
+    if (widget.car['latitude'] != null)
+      fields['latitude'] = widget.car['latitude'];
+    if (widget.car['longitude'] != null)
+      fields['longitude'] = widget.car['longitude'];
 
     try {
       await _companyService.updateCar(
@@ -128,15 +172,14 @@ class _EditCarScreenState extends State<EditCarScreen> {
                 : _newImages.map((x) => File(x.path)).toList(),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حفظ التعديلات بنجاح')),
-      );
+      AppSnackbar.showSuccess(context, title: 'تم حفظ التعديلات بنجاح');
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString().replaceAll('Exception: ', '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر حفظ التعديلات: $msg')),
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر حفظ التعديلات',
+        debugMessage: e,
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -147,21 +190,26 @@ class _EditCarScreenState extends State<EditCarScreen> {
   Future<void> _deleteCar() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('حذف السيارة'),
-        content: const Text('هل أنت متأكد من حذف هذه السيارة؟ لا يمكن التراجع عن هذا الإجراء.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text('حذف السيارة'),
+            content: const Text(
+              'هل أنت متأكد من حذف هذه السيارة؟ لا يمكن التراجع عن هذا الإجراء.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('إلغاء'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('حذف', style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('حذف', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
 
     if (confirmed != true) return;
@@ -170,140 +218,132 @@ class _EditCarScreenState extends State<EditCarScreen> {
     try {
       await _companyService.deleteCar(widget.carId);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حذف السيارة بنجاح')),
-      );
+      AppSnackbar.showSuccess(context, title: 'تم حذف السيارة بنجاح');
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString().replaceAll('Exception: ', '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تعذر حذف السيارة: $msg')),
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر حذف السيارة',
+        debugMessage: e,
       );
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }
   }
 
-  Widget _buildImagesEditor() {
-    // إذا اختار المستخدم صوراً جديدة، نعرضها بدل الصورة القديمة من السيرفر
-    if (_newImages.isNotEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _label('الصور الجديدة (${_newImages.length}/$_maxImages) — ستستبدل الصور الحالية'),
-          SizedBox(
-            height: 110,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _newImages.length + (_newImages.length < _maxImages ? 1 : 0),
-              separatorBuilder: (_, __) => const SizedBox(width: 10),
-              itemBuilder: (context, index) {
-                if (index == _newImages.length) {
-                  return _addImageTile();
-                }
-                return Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Image.file(
-                        File(_newImages[index].path),
-                        width: 110,
-                        height: 110,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: GestureDetector(
-                        onTap: () => _removeNewImage(index),
-                        child: Container(
-                          padding: const EdgeInsets.all(3),
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.close, size: 14, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
+  Widget _buildImagesEditor() => EditCarImagesEditor(
+    newImages: _newImages,
+    maxImages: _maxImages,
+    primaryImageUrl: _primaryImageUrl,
+    onPickImages: _pickImages,
+    onRemoveNewImage: _removeNewImage,
+    accentColor: _primaryBlue,
+  );
+
+  // ⬅️ جديد: اختيار ورفع فيديو جديد فوراً (endpoint مستقل عن حفظ النموذج)
+  Future<void> _pickAndUploadVideo() async {
+    if (_existingVideos.length >= _maxVideos) {
+      AppSnackbar.showWarning(
+        context,
+        title: 'يمكنك إضافة $_maxVideos فيديو كحد أقصى لكل سيارة',
       );
+      return;
     }
 
-    // لا صور جديدة بعد: نعرض الصورة الحالية من السيرفر مع زر لتغييرها
-    return GestureDetector(
-      onTap: _pickImages,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: SizedBox(
-          height: 200,
-          width: double.infinity,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              _primaryImageUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: _primaryImageUrl!,
-                      fit: BoxFit.cover,
-                      memCacheWidth: 800,
-                      placeholder: (_, __) => Container(color: const Color(0xFFE9ECF2)),
-                      errorWidget: (_, __, ___) => Container(
-                        color: const Color(0xFFE9ECF2),
-                        child: const Icon(Icons.directions_car, size: 48, color: Colors.grey),
-                      ),
-                    )
-                  : Container(
-                      color: const Color(0xFFE9ECF2),
-                      child: const Icon(Icons.directions_car, size: 48, color: Colors.grey),
-                    ),
-              Positioned(
-                bottom: 10,
-                left: 10,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.camera_alt_outlined, color: Colors.white, size: 16),
-                      SizedBox(width: 6),
-                      Text('تغيير الصور', style: TextStyle(color: Colors.white, fontSize: 12.5)),
-                    ],
-                  ),
-                ),
+    final pickedFile = await _imagePicker.pickVideo(
+      source: ImageSource.gallery,
+      maxDuration: const Duration(minutes: 3),
+    );
+    if (pickedFile == null) return;
+
+    final sizeInMb = await File(pickedFile.path).length() / (1024 * 1024);
+    if (sizeInMb > _maxVideoSizeMb) {
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: 'حجم الفيديو كبير جداً',
+        subtitle: 'الحد الأقصى $_maxVideoSizeMb ميغابايت لكل فيديو',
+      );
+      return;
+    }
+
+    setState(() => _isUploadingVideo = true);
+    try {
+      final updatedVideos = await _companyService.addCarVideos(
+        carId: widget.carId,
+        videoFiles: [File(pickedFile.path)],
+      );
+      if (!mounted) return;
+      setState(() => _existingVideos = updatedVideos);
+      AppSnackbar.showSuccess(context, title: 'تم رفع الفيديو بنجاح');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر رفع الفيديو',
+        debugMessage: e,
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingVideo = false);
+    }
+  }
+
+  // ⬅️ جديد: حذف فيديو موجود مباشرة (endpoint مستقل عن حفظ النموذج)
+  Future<void> _removeVideo(String videoUrl) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text('حذف الفيديو'),
+            content: const Text('هل تريد حذف هذا الفيديو من السيارة؟'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('إلغاء'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('حذف', style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
-        ),
-      ),
     );
+    if (confirmed != true) return;
+
+    setState(() => _removingVideoUrl = videoUrl);
+    try {
+      final updatedVideos = await _companyService.removeCarVideo(
+        carId: widget.carId,
+        videoUrl: videoUrl,
+      );
+      if (!mounted) return;
+      setState(() => _existingVideos = updatedVideos);
+      AppSnackbar.showSuccess(context, title: 'تم حذف الفيديو');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر حذف الفيديو',
+        debugMessage: e,
+      );
+    } finally {
+      if (mounted) setState(() => _removingVideoUrl = null);
+    }
   }
 
-  Widget _addImageTile() {
-    return GestureDetector(
-      onTap: _pickImages,
-      child: Container(
-        width: 110,
-        height: 110,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF6F8FB),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: _primaryBlue.withValues(alpha: 0.3)),
-        ),
-        child: Icon(Icons.add_a_photo_outlined, color: _primaryBlue),
-      ),
-    );
-  }
+  Widget _buildVideosEditor() => EditCarVideosEditor(
+    existingVideos: _existingVideos,
+    maxVideos: _maxVideos,
+    removingVideoUrl: _removingVideoUrl,
+    isUploadingVideo: _isUploadingVideo,
+    onRemoveVideo: _removeVideo,
+    onPickAndUploadVideo: _pickAndUploadVideo,
+    accentColor: _primaryBlue,
+  );
 
   InputDecoration _fieldDecoration({String? hint}) {
     return InputDecoration(
@@ -318,10 +358,7 @@ class _EditCarScreenState extends State<EditCarScreen> {
     );
   }
 
-  Widget _label(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Text(text, style: const TextStyle(fontSize: 13, color: Colors.black54)),
-      );
+  Widget _label(String text) => EditCarFieldLabel(text);
 
   @override
   Widget build(BuildContext context) {
@@ -343,7 +380,16 @@ class _EditCarScreenState extends State<EditCarScreen> {
             _buildImagesEditor(),
             const SizedBox(height: 20),
 
-            const Text('المعلومات الأساسية', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            // ⬅️ جديد: قسم فيديوهات السيارة — إضافة/حذف مباشرة (مستقلة
+            // عن حفظ بقية بيانات النموذج)، تحديداً لتغطية حالة "أريد
+            // رفعه لاحقاً" لسيارة موجودة أصلاً.
+            _buildVideosEditor(),
+            const SizedBox(height: 20),
+
+            const Text(
+              'المعلومات الأساسية',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
             const SizedBox(height: 12),
 
             Row(
@@ -356,7 +402,11 @@ class _EditCarScreenState extends State<EditCarScreen> {
                       TextFormField(
                         controller: _modelController,
                         decoration: _fieldDecoration(),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+                        validator:
+                            (v) =>
+                                (v == null || v.trim().isEmpty)
+                                    ? 'مطلوب'
+                                    : null,
                       ),
                     ],
                   ),
@@ -370,7 +420,11 @@ class _EditCarScreenState extends State<EditCarScreen> {
                       TextFormField(
                         controller: _makeController,
                         decoration: _fieldDecoration(),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+                        validator:
+                            (v) =>
+                                (v == null || v.trim().isEmpty)
+                                    ? 'مطلوب'
+                                    : null,
                       ),
                     ],
                   ),
@@ -390,7 +444,11 @@ class _EditCarScreenState extends State<EditCarScreen> {
                         controller: _yearController,
                         keyboardType: TextInputType.number,
                         decoration: _fieldDecoration(),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+                        validator:
+                            (v) =>
+                                (v == null || v.trim().isEmpty)
+                                    ? 'مطلوب'
+                                    : null,
                       ),
                     ],
                   ),
@@ -406,9 +464,14 @@ class _EditCarScreenState extends State<EditCarScreen> {
                         decoration: _fieldDecoration(),
                         items: const [
                           DropdownMenuItem(value: 'new', child: Text('جديد')),
-                          DropdownMenuItem(value: 'used', child: Text('مستعمل')),
+                          DropdownMenuItem(
+                            value: 'used',
+                            child: Text('مستعمل'),
+                          ),
                         ],
-                        onChanged: (value) => setState(() => _condition = value ?? 'used'),
+                        onChanged:
+                            (value) =>
+                                setState(() => _condition = value ?? 'used'),
                       ),
                     ],
                   ),
@@ -417,7 +480,10 @@ class _EditCarScreenState extends State<EditCarScreen> {
             ),
             const SizedBox(height: 20),
 
-            const Text('الوصف', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            const Text(
+              'الوصف',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _descriptionController,
@@ -433,17 +499,26 @@ class _EditCarScreenState extends State<EditCarScreen> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _saveChanges,
                 style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                  foregroundColor: Colors.white,
                   backgroundColor: _primaryBlue,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: _isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
-                    : const Text('حفظ التغييرات', style: TextStyle(color: Colors.white, fontSize: 15)),
+                child:
+                    _isSaving
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                        : const Text(
+                          'حفظ التغييرات',
+                          style: TextStyle(color: Colors.white, fontSize: 15),
+                        ),
               ),
             ),
             const SizedBox(height: 12),
@@ -452,17 +527,26 @@ class _EditCarScreenState extends State<EditCarScreen> {
               height: 50,
               child: OutlinedButton.icon(
                 onPressed: _isDeleting ? null : _deleteCar,
-                icon: _isDeleting
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red),
-                      )
-                    : const Icon(Icons.delete_outline, color: Colors.red),
-                label: const Text('حذف السيارة', style: TextStyle(color: Colors.red)),
+                icon:
+                    _isDeleting
+                        ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.red,
+                          ),
+                        )
+                        : const Icon(Icons.delete_outline, color: Colors.red),
+                label: const Text(
+                  'حذف السيارة',
+                  style: TextStyle(color: Colors.red),
+                ),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.red),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),

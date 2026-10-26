@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mators_car/models/ad_model.dart';
+import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/sellCars/ad_detail_screen.dart';
 import 'package:mators_car/ulits/colors.dart';
 

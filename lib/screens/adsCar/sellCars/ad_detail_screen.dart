@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mators_car/models/ad_model.dart';
+import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/contact_launcher.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/screens/adsCar/sellCars/ad_map_screen.dart';
 import 'package:mators_car/screens/company/company_public_profile_screen.dart';
-import 'package:mators_car/services/ads_service.dart';
-import 'package:mators_car/widgets/seller_rating_badge.dart';
+import 'package:mators_car/screens/messages/chat_thread_screen.dart';
+import 'package:mators_car/services/controllers/ads_service.dart';
+import 'package:mators_car/services/controllers/favorite_service.dart';
 import 'package:mators_car/widgets/section_header.dart';
+import 'package:mators_car/widgets/sellCars/ad_detail_widgets.dart';
 
 class AdDetailScreen extends StatefulWidget {
   final Ad ad;
@@ -19,7 +21,9 @@ class AdDetailScreen extends StatefulWidget {
 
 class _AdDetailScreenState extends State<AdDetailScreen> {
   final AdsService _adsService = AdsService();
+  final FavoriteService _favoriteService = FavoriteService();
   bool _isFavorite = false;
+  bool _isFavoriteBusy = false;
   int _currentImageIndex = 0;
   late Ad _ad;
 
@@ -28,6 +32,43 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
     super.initState();
     _ad = widget.ad;
     _refreshAdDetails();
+    _loadFavoriteStatus();
+  }
+
+  Future<void> _loadFavoriteStatus() async {
+    try {
+      final isFav = await _favoriteService.isFavorite(_ad.carId);
+      if (!mounted) return;
+      setState(() => _isFavorite = isFav);
+    } catch (_) {
+      // تجاهل بصمت: طلب ثانوي، لا يستحق كسر الشاشة
+    }
+  }
+
+  // ⬅️ استبدال الحل الشكلي المحلي (setState فقط) باستدعاء حقيقي لـ
+  // /favorites، بنفس نمط شاشة تفاصيل إعلان التأجير.
+  Future<void> _toggleFavorite() async {
+    if (_isFavoriteBusy) return;
+    setState(() => _isFavoriteBusy = true);
+    final wasFavorite = _isFavorite;
+    try {
+      if (wasFavorite) {
+        await _favoriteService.removeFavorite(_ad.carId);
+      } else {
+        await _favoriteService.addFavorite(_ad.carId);
+      }
+      if (!mounted) return;
+      setState(() => _isFavorite = !wasFavorite);
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر تحديث المفضلة',
+        debugMessage: e,
+      );
+    } finally {
+      if (mounted) setState(() => _isFavoriteBusy = false);
+    }
   }
 
   // إعادة جلب أحدث بيانات الإعلان من الخادم عبر GET /ads/{id}
@@ -75,11 +116,9 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم تجهيز رابط الإعلان للمشاركة'),
-                  backgroundColor: AppColors.primary,
-                ),
+              AppSnackbar.showSuccess(
+                context,
+                title: 'تم تجهيز رابط الإعلان للمشاركة',
               );
             },
           ),
@@ -88,7 +127,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               _isFavorite ? Icons.favorite : Icons.favorite_border,
               color: _isFavorite ? Colors.red : Colors.black,
             ),
-            onPressed: () => setState(() => _isFavorite = !_isFavorite),
+            onPressed: _isFavoriteBusy ? null : _toggleFavorite,
           ),
         ],
       ),
@@ -99,65 +138,11 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // معرض الصور الفاخر مع الترقيم التفاعلي الذكي بالأسفل
-                Stack(
-                  children: [
-                    SizedBox(
-                      height: 260,
-                      child: PageView.builder(
-                        itemCount: _ad.car.images.length,
-                        onPageChanged:
-                            (index) =>
-                                setState(() => _currentImageIndex = index),
-                        itemBuilder: (context, index) {
-                          final imageUrl = _ad.car.images[index];
-                          return imageUrl.isNotEmpty
-                              ? CachedNetworkImage(
-                                imageUrl: imageUrl,
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                memCacheWidth: 900,
-                                placeholder:
-                                    (context, url) => Container(
-                                      height: 260,
-                                      color: Colors.grey.shade200,
-                                    ),
-                                errorWidget:
-                                    (context, url, error) => Image.asset(
-                                      'assets/image/intro.jpg',
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                    ),
-                              )
-                              : Image.asset(
-                                'assets/image/intro.jpg',
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              );
-                        },
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 12,
-                      left: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withAlpha((0.5 * 255).round()),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          '${_currentImageIndex + 1} / ${_ad.car.images.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                AdImageGallery(
+                  images: _ad.car.images,
+                  currentIndex: _currentImageIndex,
+                  onPageChanged:
+                      (index) => setState(() => _currentImageIndex = index),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -225,7 +210,7 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                       const SizedBox(height: 20),
 
                       // شبكة المواصفات الأربعة الكتلية (أيقونات دقيقة وتسمية بالأسفل)
-                      _buildFourGridSpecs(),
+                      AdFourGridSpecs(ad: _ad),
                       const SizedBox(height: 24),
 
                       const SectionHeader(title: 'الوصف'),
@@ -243,104 +228,48 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
                       // كارت معلومات البائع التفاعلي والكامل تماماً كما في الرسمة
                       const SectionHeader(title: 'معلومات البائع'),
                       const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 26,
-                              backgroundColor: AppColors.primary.withAlpha(
-                                (0.1 * 255).round(),
-                              ),
-                              child: Icon(
-                                Icons.person,
-                                color: AppColors.primary,
-                                size: 28,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) => CompanyPublicProfileScreen(
-                                            company: {
-                                              'id': _ad.userId,
-                                              'name': _ad.contactName,
-                                              'phone': _ad.contactPhone,
-                                            },
-                                          ),
-                                    ),
-                                  );
-                                },
-                                child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _ad.contactName.isNotEmpty
-                                        ? _ad.contactName
-                                        : 'مستخدم Syria Motor',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
+                      AdSellerContactCard(
+                        ad: _ad,
+                        onTapSeller: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => CompanyPublicProfileScreen(
+                                    company: {
+                                      'id': _ad.userId,
+                                      'name': _ad.contactName,
+                                      'phone': _ad.contactPhone,
+                                    },
                                   ),
-                                  const SizedBox(height: 4),
-                                  SellerRatingBadge(userId: _ad.userId),
-                                ],
-                              ),
-                              ),
                             ),
-                            IconButton(
-                              onPressed:
-                                  () => ContactLauncher.whatsapp(
-                                    context,
-                                    _ad.contactPhone,
-                                    message:
-                                        'مرحباً، أنا مهتم بإعلان ${_ad.car.make} ${_ad.car.model} ${_ad.car.year} على تطبيق Syria Motor.',
+                          );
+                        },
+                        onTapMessage: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => ChatThreadScreen(
+                                    partnerId: _ad.userId,
+                                    partnerName:
+                                        _ad.contactName.isNotEmpty
+                                            ? _ad.contactName
+                                            : 'مستخدم Syria Motor',
                                   ),
-                              icon: Icon(
-                                Icons.chat_bubble_outline,
-                                color: AppColors.primary,
-                              ),
-                              style: IconButton.styleFrom(
-                                backgroundColor: AppColors.primary.withAlpha(
-                                  (0.08 * 255).round(),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
                             ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              onPressed:
-                                  () => ContactLauncher.call(
-                                    context,
-                                    _ad.contactPhone,
-                                  ),
-                              icon: Icon(
-                                Icons.phone_outlined,
-                                color: AppColors.primary,
-                              ),
-                              style: IconButton.styleFrom(
-                                backgroundColor: AppColors.primary.withAlpha(
-                                  (0.08 * 255).round(),
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
+                          );
+                        },
+                        onTapWhatsapp:
+                            () => ContactLauncher.whatsapp(
+                              context,
+                              _ad.contactPhone,
+                              message:
+                                  'مرحباً، أنا مهتم بإعلان ${_ad.car.make} ${_ad.car.model} ${_ad.car.year} على تطبيق Syria Motor.',
                             ),
-                          ],
-                        ),
+                        onTapCall:
+                            () =>
+                                ContactLauncher.call(context, _ad.contactPhone),
                       ),
                       const SizedBox(height: 100),
                     ],
@@ -354,141 +283,13 @@ class _AdDetailScreenState extends State<AdDetailScreen> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.white,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed:
-                          () => ContactLauncher.call(
-                            context,
-                            _ad.contactPhone,
-                          ),
-                      icon: const Icon(
-                        Icons.phone_in_talk,
-                        color: Colors.white,
-                      ),
-                      style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-                        backgroundColor: AppColors.primary,
-                        minimumSize: const Size(double.infinity, 52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      label: const Text(
-                        'اتصل بالبائع',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _handlePurchase,
-                      icon: const Icon(
-                        Icons.shopping_cart,
-                        color: Colors.white,
-                      ),
-                      style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-                        backgroundColor: const Color(0xFF1F7A3C),
-                        minimumSize: const Size(double.infinity, 52),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      label: const Text(
-                        'شراء الآن',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            child: AdDetailsBottomActionBar(
+              onCall: () => ContactLauncher.call(context, _ad.contactPhone),
+              onBuyNow: _handlePurchase,
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFourGridSpecs() {
-    final specs = [
-      {
-        'title': 'نوع الوقود',
-        'val': _ad.car.fuelType ?? 'غير محدد',
-        'icon': Icons.local_gas_station_outlined,
-      },
-      {
-        'title': 'ناقل الحركة',
-        'val': _ad.car.transmission ?? 'غير محدد',
-        'icon': Icons.settings_input_component_outlined,
-      },
-      {
-        'title': 'السنة',
-        'val': _ad.car.year.toString(),
-        'icon': Icons.calendar_today_outlined,
-      },
-      {
-        'title': 'العداد',
-        'val':
-            _ad.car.mileage != null
-                ? '${_ad.car.mileage} كم'
-                : 'غير محدد',
-        'icon': Icons.speed_outlined,
-      },
-    ];
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 2.3,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-      ),
-      itemCount: specs.length,
-      itemBuilder: (context, index) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                specs[index]['icon'] as IconData,
-                color: AppColors.primary,
-                size: 24,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                specs[index]['val'] as String,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
-              Text(
-                specs[index]['title'] as String,
-                style: const TextStyle(color: Colors.grey, fontSize: 11),
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 

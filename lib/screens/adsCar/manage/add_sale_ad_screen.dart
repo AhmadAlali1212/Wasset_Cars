@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:mators_car/screens/adsCar/manage/car_picker_sheet.dart';
-import 'package:mators_car/services/ads_service.dart';
+import 'package:mators_car/services/controllers/ads_service.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 
 /// شاشة إنشاء إعلان بيع جديد (تعمل لكل من حساب الفرد وحساب المعرض
 /// بنفس الطريقة تماماً لأن الـ API واحد لكليهما - راجع قسم
@@ -78,53 +79,42 @@ class _AddSaleAdScreenState extends State<AddSaleAdScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_selectedCarId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('الرجاء اختيار السيارة أولاً')),
-      );
+      AppSnackbar.showWarning(context, title: 'الرجاء اختيار السيارة أولاً');
       return;
     }
 
     final price = double.tryParse(_priceController.text.trim()) ?? 0;
     if (price <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أدخل سعراً صحيحاً أكبر من صفر')),
-      );
+      AppSnackbar.showWarning(context, title: 'أدخل سعراً صحيحاً أكبر من صفر');
       return;
     }
 
     setState(() => _isSubmitting = true);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
       if (_isEditMode) {
         final adId = widget.existingAd!['id'] as int;
         await _adsService.updateAd(adId: adId, price: price);
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('تم تحديث سعر الإعلان بنجاح')),
-        );
+        if (!mounted) return;
+        AppSnackbar.showSuccess(context, title: 'تم تحديث سعر الإعلان بنجاح');
       } else {
         await _adsService.createAd(carId: _selectedCarId!, price: price);
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('تم إنشاء إعلان البيع بنجاح، بانتظار مراجعة الأدمن'),
-          ),
+        if (!mounted) return;
+        AppSnackbar.showSuccess(
+          context,
+          title: 'تم إنشاء إعلان البيع بنجاح',
+          subtitle: 'بانتظار مراجعة الأدمن',
         );
       }
       if (!mounted) return;
       Navigator.pop(context, true);
     } on DioException catch (e) {
-      print("Status Code: ${e.response?.statusCode}");
-      print("Response: ${e.response?.data}");
-
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Text(e.response?.data.toString() ?? e.message ?? "حدث خطأ"),
-        ),
-      );
+      debugPrint('DioException in add_sale_ad_screen: ${e.response?.statusCode} ${e.response?.data}');
+      if (!mounted) return;
+      AppSnackbar.showError(context, title: 'تعذّر حفظ إعلان البيع', debugMessage: e);
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشلت العملية: $e')),
-      );
+      if (!mounted) return;
+      AppSnackbar.showError(context, title: 'فشلت العملية', debugMessage: e);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

@@ -3,6 +3,8 @@ import 'package:mators_car/screens/adsCar/manage/add_rental_ad_screen.dart';
 import 'package:mators_car/screens/adsCar/manage/add_sale_ad_screen.dart';
 import 'package:mators_car/screens/adsCar/manage/rental_ads_list.dart';
 import 'package:mators_car/screens/adsCar/manage/sale_ads_list.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
 
 /// شاشة موحّدة لإدارة إعلانات البيع والتأجير معاً، بتبويبين منفصلين.
 /// تُستخدم من قِبل حساب الفرد وحساب المعرض على حد سواء لأن آلية
@@ -11,7 +13,11 @@ class ManageAdsScreen extends StatefulWidget {
   final String title;
   final List<Widget>? actions;
 
-  const ManageAdsScreen({super.key, this.title = 'إدارة الإعلانات', this.actions});
+  const ManageAdsScreen({
+    super.key,
+    this.title = 'إدارة الإعلانات',
+    this.actions,
+  });
 
   @override
   State<ManageAdsScreen> createState() => _ManageAdsScreenState();
@@ -57,19 +63,19 @@ class _ManageAdsScreenState extends State<ManageAdsScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'نوع الإعلان',
+                Text(
+                  context.tr('ad_type'),
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                 ),
                 const SizedBox(height: 12),
                 ListTile(
                   leading: const Icon(Icons.sell_outlined),
-                  title: const Text('إعلان بيع'),
+                  title: Text(context.tr('sale_ad')),
                   onTap: () => Navigator.pop(context, 'sale'),
                 ),
                 ListTile(
                   leading: const Icon(Icons.car_rental_outlined),
-                  title: const Text('إعلان تأجير'),
+                  title: Text(context.tr('rental_ad')),
                   onTap: () => Navigator.pop(context, 'rental'),
                 ),
               ],
@@ -102,22 +108,20 @@ class _ManageAdsScreenState extends State<ManageAdsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FB),
+      backgroundColor: context.adaptiveScaffoldBg,
       appBar: AppBar(
         title: Text(widget.title),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         actions: widget.actions,
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFF0F4C81),
-          unselectedLabelColor: Colors.black54,
-          indicatorColor: const Color(0xFF0F4C81),
-          tabs: const [
-            Tab(text: 'إعلانات البيع'),
-            Tab(text: 'إعلانات التأجير'),
+          labelColor: Theme.of(context).colorScheme.primary,
+          unselectedLabelColor: context.adaptiveTextSecondary,
+          indicatorColor: Theme.of(context).colorScheme.primary,
+          tabs: [
+            Tab(text: context.tr('sale_ads')),
+            Tab(text: context.tr('rental_ads')),
           ],
         ),
       ),
@@ -130,9 +134,9 @@ class _ManageAdsScreenState extends State<ManageAdsScreen>
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddMenu,
-        backgroundColor: const Color(0xFF0F4C81),
+        backgroundColor: Theme.of(context).colorScheme.primary,
         icon: const Icon(Icons.add),
-        label: const Text('إعلان جديد'),
+        label: Text(context.tr('new_ad')),
       ),
     );
   }

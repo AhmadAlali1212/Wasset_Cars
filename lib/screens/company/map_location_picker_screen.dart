@@ -5,6 +5,8 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
 
 /// نتيجة اختيار الموقع التي تُعاد إلى الشاشة السابقة (Navigator.pop)
 class PickedLocation {
@@ -65,7 +67,10 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   bool _isLoadingLocation = true;
   bool _isResolvingAddress = false;
 
-  static const LatLng _fallbackPosition = LatLng(33.5138, 36.2765); // دمشق كموقع افتراضي
+  static const LatLng _fallbackPosition = LatLng(
+    33.5138,
+    36.2765,
+  ); // دمشق كموقع افتراضي
 
   @override
   void initState() {
@@ -138,16 +143,18 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
       );
       if (placemarks.isNotEmpty) {
         final p = placemarks.first;
-        final parts = [
-          p.street,
-          p.subLocality,
-          p.locality,
-          p.administrativeArea,
-        ].where((e) => e != null && e.trim().isNotEmpty).toList();
+        final parts =
+            [
+              p.street,
+              p.subLocality,
+              p.locality,
+              p.administrativeArea,
+            ].where((e) => e != null && e.trim().isNotEmpty).toList();
         setState(() {
-          _pickedAddress = parts.isNotEmpty
-              ? parts.join('، ')
-              : '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+          _pickedAddress =
+              parts.isNotEmpty
+                  ? parts.join('، ')
+                  : '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
         });
       }
     } catch (_) {
@@ -194,7 +201,8 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
       PickedLocation(
         latitude: _pickedPosition!.latitude,
         longitude: _pickedPosition!.longitude,
-        address: _pickedAddress ??
+        address:
+            _pickedAddress ??
             '${_pickedPosition!.latitude.toStringAsFixed(5)}, '
                 '${_pickedPosition!.longitude.toStringAsFixed(5)}',
       ),
@@ -205,101 +213,112 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تحديد موقع السيارة'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: Text(context.tr('select_car_location')),
         elevation: 0,
       ),
-      body: _isLoadingLocation
-          ? const Center(child: CircularProgressIndicator())
-          : Stack(
-              children: [
-                GoogleMap(
-                  initialCameraPosition: CameraPosition(
-                    target: _pickedPosition ?? _fallbackPosition,
-                    zoom: 14.5,
-                  ),
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: false,
-                  onMapCreated: (controller) {
-                    if (!_controller.isCompleted) {
-                      _controller.complete(controller);
-                    }
-                  },
-                  onTap: _onMapTapped,
-                  markers: _pickedPosition == null
-                      ? {}
-                      : {
-                          Marker(
-                            markerId: const MarkerId('picked-location'),
-                            position: _pickedPosition!,
-                          ),
-                        },
-                ),
-                Positioned(
-                  right: 16,
-                  bottom: 170,
-                  child: FloatingActionButton(
-                    heroTag: 'myLocationBtn',
-                    backgroundColor: Colors.white,
-                    onPressed: _goToMyLocation,
-                    child: const Icon(Icons.my_location, color: Colors.black87),
-                  ),
-                ),
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 20,
-                  child: Card(
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+      body:
+          _isLoadingLocation
+              ? const Center(child: CircularProgressIndicator())
+              : Stack(
+                children: [
+                  GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _pickedPosition ?? _fallbackPosition,
+                      zoom: 14.5,
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.location_on_outlined),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _isResolvingAddress
-                                    ? const Text('جارِ تحديد العنوان...')
-                                    : Text(
-                                        _pickedAddress ?? 'اضغط على الخريطة لاختيار الموقع',
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: false,
+                    onMapCreated: (controller) {
+                      if (!_controller.isCompleted) {
+                        _controller.complete(controller);
+                      }
+                    },
+                    onTap: _onMapTapped,
+                    markers:
+                        _pickedPosition == null
+                            ? {}
+                            : {
+                              Marker(
+                                markerId: const MarkerId('picked-location'),
+                                position: _pickedPosition!,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed:
-                                _pickedPosition == null ? null : _confirmSelection,
-                            style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-                              backgroundColor: AppColors.primaryNavy,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'تأكيد هذا الموقع',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
+                            },
+                  ),
+                  Positioned(
+                    right: 16,
+                    bottom: 170,
+                    child: FloatingActionButton(
+                      heroTag: 'myLocationBtn',
+                      backgroundColor: context.adaptiveCardBg,
+                      onPressed: _goToMyLocation,
+                      child: Icon(
+                        Icons.my_location,
+                        color: context.adaptiveTextPrimary,
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 20,
+                    child: Card(
+                      elevation: 6,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.location_on_outlined),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child:
+                                      _isResolvingAddress
+                                          ? Text(
+                                            context.tr('resolving_address'),
+                                          )
+                                          : Text(
+                                            _pickedAddress ??
+                                                context.tr('tap_map_to_select'),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed:
+                                  _pickedPosition == null
+                                      ? null
+                                      : _confirmSelection,
+                              style: ElevatedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: AppColors.primaryNavy,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: Text(
+                                context.tr('confirm_this_location'),
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
     );
   }
 }

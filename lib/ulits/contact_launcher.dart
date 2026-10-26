@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 
 // أداة موحّدة للاتصال (tel:) وفتح محادثة واتساب (wa.me) باستخدام رقم
 // الهاتف الحقيقي الذي أدخله المستخدم (شركة أو فرد) عند إنشاء حسابه
@@ -54,14 +55,10 @@ class ContactLauncher {
   }
 
   static void _showMissingPhoneMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('لا يوجد رقم هاتف مسجّل لهذا المستخدم')),
-    );
+    AppSnackbar.showWarning(context, title: 'لا يوجد رقم هاتف مسجّل لهذا المستخدم');
   }
 
   static void _showLaunchFailedMessage(BuildContext context, String target) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('تعذر فتح $target على جهازك')));
+    AppSnackbar.showError(context, title: 'تعذّر فتح $target على جهازك');
   }
 }

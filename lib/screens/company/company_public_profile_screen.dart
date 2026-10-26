@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mators_car/models/car_model.dart';
-import 'package:mators_car/models/rating_model.dart';
-import 'package:mators_car/services/follow_service.dart';
-import 'package:mators_car/services/company_service.dart';
-import 'package:mators_car/services/rating_service.dart';
+import 'package:mators_car/data/models/car_model.dart';
+import 'package:mators_car/data/models/rating_model.dart';
+import 'package:mators_car/services/controllers/follow_service.dart';
+import 'package:mators_car/services/controllers/company_service.dart';
+import 'package:mators_car/services/controllers/rating_service.dart';
 import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/screens/auth/storeg/auth_storage.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/constans.dart';
 import 'package:mators_car/ulits/contact_launcher.dart';
+import 'package:mators_car/screens/messages/chat_thread_screen.dart';
+import 'package:mators_car/widgets/common/report_user_sheet.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/widgets/company/company_public_profile_widgets.dart';
 
 // شاشة الملف العام لشركة/معرض. لا يوجد بالـ API endpoint مخصص لجلب "ملف
 // شركة واحدة بكل تفاصيلها" (فقط متابعة/حالة متابعة/قائمة المتابَعين)،
@@ -39,8 +43,7 @@ class _CompanyPublicProfileScreenState
   late Future<List<Rating>> _ratingsFuture;
 
   int get _companyId =>
-      int.tryParse('${widget.company['id'] ?? widget.company['user_id']}') ??
-      0;
+      int.tryParse('${widget.company['id'] ?? widget.company['user_id']}') ?? 0;
 
   String get _companyName =>
       (widget.company['name'] ??
@@ -164,15 +167,19 @@ class _CompanyPublicProfileScreenState
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _isActingOnFollow = false);
-      ScaffoldMessenger.of(
+      AppSnackbar.showError(
         context,
-      ).showSnackBar(SnackBar(content: Text(e.message)));
+        title: 'تعذّر تنفيذ الطلب',
+        subtitle: e.message,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isActingOnFollow = false);
-      ScaffoldMessenger.of(
+      AppSnackbar.showError(
         context,
-      ).showSnackBar(SnackBar(content: Text('حدث خطأ: $e')));
+        title: 'تعذّر تنفيذ الطلب',
+        debugMessage: e,
+      );
     }
   }
 
@@ -190,7 +197,31 @@ class _CompanyPublicProfileScreenState
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
-            actions: const [SizedBox(width: 8)],
+            actions: [
+              // ⬅️ جديد: إبلاغ عن هذا الحساب مباشرة من صفحته العامة
+              if (!_isOwnProfile)
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onSelected: (value) {
+                    if (value == 'report') {
+                      ReportUserSheet.show(
+                        context,
+                        reportedUserId: _companyId,
+                        contextType: 'ad',
+                      );
+                    }
+                  },
+                  itemBuilder:
+                      (_) => const [
+                        PopupMenuItem(
+                          value: 'report',
+                          child: Text('إبلاغ / حظر'),
+                        ),
+                      ],
+                )
+              else
+                const SizedBox(width: 8),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background:
                   _coverUrl != null
@@ -202,8 +233,7 @@ class _CompanyPublicProfileScreenState
                             fit: BoxFit.cover,
                             memCacheWidth: 800,
                             placeholder:
-                                (_, __) =>
-                                    Container(color: AppColors.primary),
+                                (_, __) => Container(color: AppColors.primary),
                             errorWidget:
                                 (_, __, ___) =>
                                     Container(color: AppColors.primary),
@@ -414,8 +444,33 @@ class _CompanyPublicProfileScreenState
                                 icon: const Icon(Icons.phone_outlined),
                                 style: IconButton.styleFrom(
                                   foregroundColor: AppColors.primary,
-                                  backgroundColor: AppColors.primary
-                                      .withValues(alpha: 0.08),
+                                  backgroundColor: AppColors.primary.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  minimumSize: const Size(48, 48),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              // ⬅️ جديد: واتساب أصبح زر أيقونة صغير مستقل،
+                              // والزر الرئيسي "رسالة" أصبح مراسلة حقيقية
+                              // داخل التطبيق بدل فتح واتساب خارجي.
+                              IconButton(
+                                onPressed:
+                                    () => ContactLauncher.whatsapp(
+                                      context,
+                                      _companyPhone,
+                                      message:
+                                          'مرحباً، أتواصل معكم من تطبيق Syria Motor.',
+                                    ),
+                                icon: const Icon(Icons.chat_bubble_outline),
+                                style: IconButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                  backgroundColor: AppColors.primary.withValues(
+                                    alpha: 0.08,
+                                  ),
                                   minimumSize: const Size(48, 48),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(30),
@@ -425,13 +480,18 @@ class _CompanyPublicProfileScreenState
                               const SizedBox(width: 8),
                               Expanded(
                                 child: OutlinedButton.icon(
-                                  onPressed:
-                                      () => ContactLauncher.whatsapp(
-                                        context,
-                                        _companyPhone,
-                                        message:
-                                            'مرحباً، أتواصل معكم من تطبيق Syria Motor.',
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (_) => ChatThreadScreen(
+                                              partnerId: _companyId,
+                                              partnerName: _companyName,
+                                            ),
                                       ),
+                                    );
+                                  },
                                   icon: const Icon(Icons.message_outlined),
                                   label: const Text('رسالة'),
                                   style: OutlinedButton.styleFrom(
@@ -469,7 +529,7 @@ class _CompanyPublicProfileScreenState
                                     style: const TextStyle(color: Colors.white),
                                   ),
                                   style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                                    foregroundColor: Colors.white,
                                     backgroundColor:
                                         (_isFollowing ?? false)
                                             ? Colors.black45
@@ -498,325 +558,103 @@ class _CompanyPublicProfileScreenState
     );
   }
 
-  Widget _buildStatsRow() {
-    final followers = widget.company['followers_count'];
-
-    return FutureBuilder<List<Car>>(
-      future: _companyCarsFuture,
-      builder: (context, carsSnapshot) {
-        final carsCount = carsSnapshot.data?.length;
-        return FutureBuilder<List<Rating>>(
-          future: _ratingsFuture,
-          builder: (context, ratingsSnapshot) {
-            final ratings = ratingsSnapshot.data;
-            String ratingText = '...';
-            if (ratings != null) {
-              ratingText =
-                  ratings.isEmpty
-                      ? '—'
-                      : (ratings.map((r) => r.value).reduce((a, b) => a + b) /
-                              ratings.length)
-                          .toStringAsFixed(1);
-            }
-            final ratingsCount = ratings?.length;
-            return Row(
-              children: [
-                _statItem(
-                  Icons.people_alt_outlined,
-                  followers != null ? followers.toString() : '—',
-                  'متابع',
-                ),
-                _statDivider(),
-                _statItem(
-                  Icons.directions_car_filled_outlined,
-                  carsCount != null ? carsCount.toString() : '...',
-                  'سيارة للبيع',
-                ),
-                _statDivider(),
-                _statItem(
-                  Icons.star_rounded,
-                  ratingText,
-                  ratingsCount != null && ratingsCount > 0
-                      ? 'تقييم ($ratingsCount)'
-                      : 'تقييم',
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _statDivider() => Container(
-    width: 1,
-    height: 36,
-    color: Colors.black12,
-    margin: const EdgeInsets.symmetric(horizontal: 6),
+  Widget _buildStatsRow() => CompanyStatsRow(
+    carsFuture: _companyCarsFuture,
+    ratingsFuture: _ratingsFuture,
+    followersCount: widget.company['followers_count'],
   );
 
-  Widget _statItem(IconData icon, String value, String label) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11.5, color: Colors.black54),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _statDivider() => const CompanyStatDivider();
 
-  Widget _buildFeaturedCarsSection() {
-    return FutureBuilder<List<Car>>(
-      future: _companyCarsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 20),
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final cars = snapshot.data ?? [];
-        if (cars.isEmpty) return const SizedBox.shrink();
+  Widget _statItem(IconData icon, String value, String label) =>
+      CompanyStatItem(icon: icon, value: value, label: label);
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _sectionTitle(Icons.directions_car_filled, 'السيارات المميزة'),
-            const SizedBox(height: 10),
-            SizedBox(
-              height: 190,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: cars.length > 8 ? 8 : cars.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final car = cars[index];
-                  final imageUrl =
-                      car.images.isNotEmpty ? car.images.first : null;
-                  return Container(
-                    width: 140,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
-                          blurRadius: 6,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(14),
-                          ),
-                          child:
-                              imageUrl != null
-                                  ? CachedNetworkImage(
-                                    imageUrl: imageUrl,
-                                    height: 100,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    memCacheWidth: 300,
-                                    placeholder:
-                                        (_, __) => Container(
-                                          height: 100,
-                                          color: const Color(0xFFF0F0F0),
-                                        ),
-                                    errorWidget:
-                                        (_, __, ___) => Container(
-                                          height: 100,
-                                          color: const Color(0xFFF0F0F0),
-                                        ),
-                                  )
-                                  : Container(
-                                    height: 100,
-                                    color: const Color(0xFFF0F0F0),
-                                    child: const Icon(Icons.directions_car),
-                                  ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${car.make} ${car.model}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${car.year}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  Widget _buildFeaturedCarsSection() =>
+      FeaturedCarsSection(carsFuture: _companyCarsFuture);
 
-  Widget _buildRatingsSection() {
-    return FutureBuilder<List<Rating>>(
-      future: _ratingsFuture,
-      builder: (context, snapshot) {
-        final ratings = snapshot.data ?? [];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _sectionTitle(Icons.star_rounded, 'التقييمات'),
-                TextButton.icon(
-                  onPressed: _showRateDialog,
-                  icon: const Icon(Icons.star_border, size: 18),
-                  label: const Text('قيّم هذه الشركة'),
-                ),
-              ],
-            ),
-            if (snapshot.connectionState == ConnectionState.waiting)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (ratings.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'لا توجد تقييمات بعد. كن أول من يقيّم!',
-                  style: TextStyle(color: Colors.black54, fontSize: 12.5),
-                ),
-              )
-            else
-              ...ratings
-                  .take(6)
-                  .map((r) => _buildRatingItem(r)),
-          ],
-        );
-      },
-    );
-  }
+  Widget _buildRatingsSection() => CompanyRatingsSection(
+    ratingsFuture: _ratingsFuture,
+    onRate: _showRateDialog,
+  );
 
   // عنوان قسم بشارة صغيرة ملوّنة قبل النص بدل نص عادٍ فقط، لمظهر أكثر
   // احترافية ومطابقة لنمط بطاقات باقي الشاشة.
-  Widget _sectionTitle(IconData icon, String title) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, size: 15, color: AppColors.primary),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-        ),
-      ],
-    );
-  }
+  Widget _sectionTitle(IconData icon, String title) =>
+      SectionTitleBadge(icon: icon, title: title);
 
-  Widget _buildRatingItem(Rating r) {
-    final initial = r.raterName.isNotEmpty ? r.raterName[0] : '؟';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 6),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: AppColors.primary.withOpacity(0.12),
-                child: Text(
-                  initial,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  r.raterName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              ),
-              Row(
-                children: List.generate(
-                  5,
-                  (i) => Icon(
-                    i < r.value ? Icons.star : Icons.star_border,
-                    size: 14,
-                    color: Colors.amber,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (r.comment.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(right: 42),
-              child: Text(
-                r.comment,
-                style: const TextStyle(fontSize: 12.5, color: Colors.black87),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+  Widget _buildRatingItem(Rating r) => CompanyRatingItem(rating: r);
 
   Future<void> _showRateDialog() async {
     if (_companyId == 0) return;
+
+    // ⬅️ جديد: التقييم أصبح مربوطاً بشكل صارم بمعاملة فعلية مكتملة —
+    // نجلب أولاً المعاملات المكتملة معي التي لم أقيّمها بعد، ونعرض فقط
+    // ما يخص هذه الشركة تحديداً.
+    List<Map<String, dynamic>> ratable;
+    try {
+      final all = await _ratingService.getRatableTransactions();
+      ratable =
+          all
+              .where((t) => (t['other_user_id'] as num?)?.toInt() == _companyId)
+              .toList();
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر التحقق من إمكانية التقييم',
+        debugMessage: e,
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    if (ratable.isEmpty) {
+      AppSnackbar.showError(
+        context,
+        title: 'لا يمكن التقييم الآن',
+        subtitle:
+            'التقييم متاح فقط بعد إتمام صفقة بيع أو مزاد أو حجز تأجير حقيقي معهم.',
+      );
+      return;
+    }
+
+    Map<String, dynamic>? selectedTransaction = ratable.first;
+    if (ratable.length > 1) {
+      selectedTransaction = await showDialog<Map<String, dynamic>>(
+        context: context,
+        builder:
+            (dialogContext) => AlertDialog(
+              title: const Text('اختر الصفقة التي تريد تقييمها'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: ratable.length,
+                  itemBuilder: (context, index) {
+                    final t = ratable[index];
+                    return ListTile(
+                      title: Text(t['title']?.toString() ?? ''),
+                      onTap: () => Navigator.pop(dialogContext, t),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, null),
+                  child: const Text('إلغاء'),
+                ),
+              ],
+            ),
+      );
+      if (selectedTransaction == null || !mounted) return;
+    }
+
+    final Map<String, dynamic> chosenTransaction = selectedTransaction;
+    final transactionType = chosenTransaction['type'] as String;
+    final transactionId = (chosenTransaction['transaction_id'] as num).toInt();
+
     int selectedStars = 5;
     final commentController = TextEditingController();
 
@@ -826,7 +664,7 @@ class _CompanyPublicProfileScreenState
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('قيّم هذه الشركة'),
+              title: Text('قيّم: ${selectedTransaction!['title'] ?? ''}'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -836,9 +674,8 @@ class _CompanyPublicProfileScreenState
                       final starIndex = i + 1;
                       return IconButton(
                         onPressed:
-                            () => setDialogState(
-                              () => selectedStars = starIndex,
-                            ),
+                            () =>
+                                setDialogState(() => selectedStars = starIndex),
                         icon: Icon(
                           starIndex <= selectedStars
                               ? Icons.star
@@ -868,7 +705,7 @@ class _CompanyPublicProfileScreenState
                 ElevatedButton(
                   onPressed: () => Navigator.pop(dialogContext, true),
                   style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                    foregroundColor: Colors.white,
                     backgroundColor: AppColors.primary,
                   ),
                   child: const Text(
@@ -885,7 +722,6 @@ class _CompanyPublicProfileScreenState
 
     if (confirmed != true) return;
     if (!mounted) return;
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       await _ratingService.addRating(
         userId: _companyId,
@@ -894,19 +730,22 @@ class _CompanyPublicProfileScreenState
             commentController.text.trim().isEmpty
                 ? null
                 : commentController.text.trim(),
+        type: transactionType,
+        transactionId: transactionId,
       );
       _refreshRatings();
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('تم إرسال تقييمك بنجاح ✅'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppSnackbar.showSuccess(context, title: 'تم إرسال تقييمك بنجاح');
     } on ApiException catch (e) {
-      scaffoldMessenger.showSnackBar(SnackBar(content: Text(e.message)));
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إرسال التقييم',
+        subtitle: e.message,
+      );
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('تعذر إرسال التقييم: $e')),
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إرسال التقييم',
+        debugMessage: e,
       );
     }
   }

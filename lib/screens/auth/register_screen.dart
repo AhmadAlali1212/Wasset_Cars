@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mators_car/screens/auth/login_screen.dart';
 import 'package:mators_car/screens/auth/verification_screen.dart';
-import 'package:mators_car/services/auth_serivces.dart';
+import 'package:mators_car/services/controllers/auth_service.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/widgets/auth/register/register_screen_widgets.dart';
 
 class RegisterScreen extends StatefulWidget {
   final int accountTypeId;
@@ -49,8 +51,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _register() async {
     if (_formKey.currentState!.validate()) {
       if (!_acceptTerms) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('يجب الموافقة على الشروط والأحكام')),
+        AppSnackbar.showWarning(
+          context,
+          title: 'يجب الموافقة على الشروط والأحكام',
         );
         return;
       }
@@ -84,14 +87,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } on DioException catch (e) {
         String errorMessage = 'حدث خطأ أثناء التسجيل';
         final responseData = e.response?.data;
-        final dioMessage = e.message?.toString().trim();
-        final dioError = e.error?.toString().trim();
 
-        if (dioMessage != null && dioMessage.isNotEmpty) {
-          errorMessage = dioMessage;
-        } else if (dioError != null && dioError.isNotEmpty) {
-          errorMessage = dioError;
-        } else if (responseData is Map && responseData['errors'] is Map) {
+        if (responseData is Map && responseData['errors'] is Map) {
           final errors = responseData['errors'] as Map;
           final lines =
               errors.entries.map((entry) {
@@ -108,26 +105,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
           errorMessage = responseData['message'].toString();
         } else if (responseData is String && responseData.isNotEmpty) {
           errorMessage = responseData;
-        } else if (e.toString().isNotEmpty) {
-          errorMessage = e.toString();
         }
+        // ملاحظة: لا نستخدم e.message/e.error/e.toString() كرسالة احتياطية
+        // بعد الآن لأنها نصوص تقنية خام (مثل "DioException [connection
+        // timeout]")، غير مناسبة لعرضها على المستخدم. تُطبع فقط بالتصحيح.
+        debugPrint('Register DioException: $e');
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(
+        AppSnackbar.showError(
           context,
-        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+          title: 'تعذّر إنشاء الحساب',
+          subtitle: errorMessage,
+        );
       } catch (e) {
         if (!mounted) {
           return;
         }
-        final message = e.toString().replaceFirst('Exception: ', '').trim();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              message.isNotEmpty ? message : 'حدث خطأ غير متوقع أثناء التسجيل',
-            ),
-          ),
+        AppSnackbar.showError(
+          context,
+          title: 'تعذّر إنشاء الحساب',
+          subtitle: 'حدث خطأ غير متوقع أثناء التسجيل',
+          debugMessage: e,
         );
       } finally {
         if (mounted) {
@@ -185,15 +184,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 24),
 
                   // حقل الاسم
-                  Text(
+                  RegisterFieldLabel(
                     widget.accountTypeId == 1
                         ? 'الاسم الكامل'
                         : 'اسم ${_getAccountTypeName()}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF374151),
-                    ),
                   ),
                   const SizedBox(height: 8),
                   CustomTextField(
@@ -213,14 +207,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 20),
 
                   // حقل البريد الإلكتروني
-                  const Text(
-                    'البريد الإلكتروني',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF374151),
-                    ),
-                  ),
+                  const RegisterFieldLabel('البريد الإلكتروني'),
                   const SizedBox(height: 8),
                   CustomTextField(
                     icon: Icons.email_outlined,
@@ -240,14 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 20),
 
                   // حقل رقم الهاتف
-                  const Text(
-                    'رقم الهاتف',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF374151),
-                    ),
-                  ),
+                  const RegisterFieldLabel('رقم الهاتف'),
                   const SizedBox(height: 8),
                   CustomTextField(
                     icon: Icons.phone_android_outlined,
@@ -267,14 +247,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 20),
 
                   // حقل كلمة المرور
-                  const Text(
-                    'كلمة المرور',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF374151),
-                    ),
-                  ),
+                  const RegisterFieldLabel('كلمة المرور'),
                   const SizedBox(height: 8),
                   CustomTextField(
                     controller: _passwordController,
@@ -309,14 +282,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 20),
 
                   // حقل تأكيد كلمة المرور
-                  const Text(
-                    'تأكيد كلمة المرور',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF374151),
-                    ),
-                  ),
+                  const RegisterFieldLabel('تأكيد كلمة المرور'),
                   const SizedBox(height: 8),
                   CustomTextField(
                     controller: _confirmPasswordController,
@@ -352,76 +318,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   // تنبيه لمراجعة المستندات (للشركات)
                   if (widget.accountTypeId != 1) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(
-                          0xFFFEF3C7,
-                        ), // خلفية صفراء خفيفة للتنبيه
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Color(0xFFD97706),
-                            size: 20,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'سيتم مراجعة مستنداتك من قبل الإدارة قبل تفعيل الحساب',
-                              style: TextStyle(
-                                color: Color(0xFFB45309),
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const DocumentReviewNotice(),
                     const SizedBox(height: 20),
                   ],
 
                   // حقل الشروط والأحكام بتصميم منسق وثابت
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: _acceptTerms,
-                        onChanged: (value) {
-                          setState(() {
-                            _acceptTerms = value ?? false;
-                          });
-                        },
-                        activeColor: const Color(
-                          0xFF051329,
-                        ), // لون داكن مطابق للزر
-                      ),
-                      Expanded(
-                        child: Wrap(
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            const Text(
-                              'أوافق على ',
-                              style: TextStyle(color: Color(0xFF4B5563)),
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                // TODO: Show terms and conditions
-                              },
-                              child: const Text(
-                                'الشروط والأحكام',
-                                style: TextStyle(
-                                  color: Color(0xFF0052CC),
-                                  fontWeight: FontWeight.w500,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  TermsAgreementRow(
+                    accepted: _acceptTerms,
+                    onChanged: (value) {
+                      setState(() {
+                        _acceptTerms = value ?? false;
+                      });
+                    },
+                    onTapTerms: () {
+                      // TODO: Show terms and conditions
+                    },
                   ),
                   const SizedBox(height: 28),
 
@@ -437,34 +348,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 28),
 
                   // السطر السفلي للانتقال لتسجيل الدخول
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        'لديك حساب بالفعل؟ ',
-                        style: TextStyle(color: Color(0xFF6B7280)),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginScreen(),
-                            ),
-                          );
-                        },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          foregroundColor: const Color(0xFF0052CC),
+                  LoginPromptRow(
+                    onTapLogin: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
                         ),
-                        child: const Text(
-                          'تسجيل الدخول',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 30),
                 ],

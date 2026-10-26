@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/screens/home/payment_methods_screen.dart';
-import 'package:mators_car/services/company_service.dart';
+import 'package:mators_car/services/controllers/company_service.dart';
 import 'package:mators_car/services/stripe_payment_helper.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/widgets/individual/individual_wallet_widgets.dart';
 
 class IndividualWalletScreen extends StatefulWidget {
   const IndividualWalletScreen({super.key});
@@ -44,8 +46,6 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
     String paymentMethod,
     double amount,
   ) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
     Map<String, dynamic> intent;
     try {
       intent = await _carService.createStripeTopupIntent(
@@ -54,8 +54,10 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشل إنشاء عملية الشحن: ${e.toString()}')),
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر بدء عملية الشحن',
+        debugMessage: e,
       );
       return;
     }
@@ -68,12 +70,10 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
 
     if (clientSecret == null) {
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'لم يتم استلام بيانات الدفع من السيرفر (client_secret).',
-          ),
-        ),
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر بدء عملية الدفع',
+        subtitle: 'لم يتم استلام بيانات الدفع من السيرفر',
       );
       return;
     }
@@ -86,13 +86,13 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
 
     switch (result.outcome) {
       case StripePaymentOutcome.canceled:
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(content: Text('تم إلغاء عملية الدفع')),
-        );
+        AppSnackbar.showInfo(context, title: 'تم إلغاء عملية الدفع');
         return;
       case StripePaymentOutcome.failed:
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('فشلت عملية الدفع: ${result.message}')),
+        AppSnackbar.showError(
+          context,
+          title: 'فشلت عملية الدفع',
+          subtitle: result.message,
         );
         return;
       case StripePaymentOutcome.success:
@@ -119,24 +119,18 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
     await _refreshWallet();
     if (!mounted) return;
     final creditedNow = statusValue == 'credited';
-    scaffoldMessenger.showSnackBar(
-      SnackBar(
-        duration: Duration(seconds: creditedNow ? 4 : 8),
-        content: Text(
-          creditedNow
-              ? 'تم شحن المحفظة بنجاح ✅'
-              : 'تم الدفع بنجاح من طرف Stripe، لكن الرصيد لم يتحدّث بعد.\n'
-                  'هذا يعني عادة أن Stripe Webhook لم يصل للسيرفر بعد '
-                  '(بالتطوير المحلي تأكد أن أمر "stripe listen --forward-to '
-                  '..." شغّال). اسحب الشاشة للأسفل لتحديث الرصيد لاحقاً.',
-        ),
-      ),
-    );
+    if (creditedNow) {
+      AppSnackbar.showSuccess(context, title: 'تم شحن المحفظة بنجاح');
+    } else {
+      AppSnackbar.showInfo(
+        context,
+        title: 'تم الدفع، بانتظار تأكيد الرصيد',
+        subtitle: 'اسحب الشاشة للأسفل لتحديث الرصيد بعد قليل',
+      );
+    }
   }
 
   Future<void> _showChargeDialog() async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
     await showDialog(
       context: context,
       builder: (dialogContext) {
@@ -162,21 +156,18 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
                 final amount = double.tryParse(amountText);
 
                 if (amount == null || amount <= 0) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('أدخل مبلغاً صحيحاً أكبر من صفر'),
-                    ),
+                  AppSnackbar.showWarning(
+                    context,
+                    title: 'أدخل مبلغاً صحيحاً أكبر من صفر',
                   );
                   return;
                 }
 
                 if (amount > StripePaymentHelper.maxTopupAmountUsd) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'الحد الأقصى لعملية الشحن الواحدة هو 10,000 USD',
-                      ),
-                    ),
+                  AppSnackbar.showWarning(
+                    context,
+                    title: 'تجاوزت الحد الأقصى',
+                    subtitle: 'الحد الأقصى لعملية الشحن الواحدة هو 10,000 USD',
                   );
                   return;
                 }
@@ -208,7 +199,6 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
   }
 
   Future<void> _showWithdrawDialog() async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final destinationController = TextEditingController();
 
     await showDialog(
@@ -251,17 +241,17 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
                 final destination = destinationController.text.trim();
 
                 if (amount == null || amount <= 0) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(
-                      content: Text('أدخل مبلغاً صحيحاً أكبر من صفر'),
-                    ),
+                  AppSnackbar.showWarning(
+                    context,
+                    title: 'أدخل مبلغاً صحيحاً أكبر من صفر',
                   );
                   return;
                 }
 
                 if (destination.isEmpty) {
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('أدخل جهة استلام السحب')),
+                  AppSnackbar.showWarning(
+                    context,
+                    title: 'أدخل جهة استلام السحب',
                   );
                   return;
                 }
@@ -275,13 +265,16 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
                   );
                   if (!mounted) return;
                   await _refreshWallet();
-                  scaffoldMessenger.showSnackBar(
-                    const SnackBar(content: Text('تم إرسال طلب السحب بنجاح')),
+                  AppSnackbar.showSuccess(
+                    context,
+                    title: 'تم إرسال طلب السحب بنجاح',
                   );
                 } catch (e) {
                   if (!mounted) return;
-                  scaffoldMessenger.showSnackBar(
-                    SnackBar(content: Text('فشل طلب السحب: ${e.toString()}')),
+                  AppSnackbar.showError(
+                    context,
+                    title: 'تعذّر إرسال طلب السحب',
+                    debugMessage: e,
                   );
                 }
               },
@@ -339,68 +332,11 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F4C81),
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    padding: const EdgeInsets.all(22),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'الرصيد الحالي',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          '$balance $currency',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: _showChargeDialog,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: const Color(0xFF0F4C81),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                ),
-                                child: const Text('شحن المحفظة'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: _showWithdrawDialog,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: const BorderSide(color: Colors.white),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 14,
-                                  ),
-                                ),
-                                child: const Text('سحب الرصيد'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  IndividualWalletBalanceCard(
+                    balance: balance,
+                    currency: currency,
+                    onTopUp: _showChargeDialog,
+                    onWithdraw: _showWithdrawDialog,
                   ),
                   const SizedBox(height: 24),
                   const Text(
@@ -408,80 +344,7 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                   const SizedBox(height: 16),
-                  if (transactions.isEmpty)
-                    const Center(child: Text('لا توجد حركات بعد'))
-                  else
-                    Column(
-                      children:
-                          transactions.take(10).map((transaction) {
-                            final title =
-                                transaction['title'] ??
-                                transaction['description'] ??
-                                'عملية';
-                            final amount =
-                                (transaction['amount'] ??
-                                        transaction['value'] ??
-                                        0)
-                                    .toString();
-                            final date =
-                                transaction['date'] ??
-                                transaction['created_at'] ??
-                                'غير محدد';
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.04),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          title,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          date,
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Text(
-                                    amount,
-                                    style: TextStyle(
-                                      color:
-                                          amount.startsWith('-')
-                                              ? Colors.red
-                                              : Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                    ),
+                  IndividualWalletTransactionsList(transactions: transactions),
                 ],
               ),
             ),

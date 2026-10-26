@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mators_car/services/follow_service.dart';
+import 'package:mators_car/services/controllers/follow_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
 import 'company_public_profile_screen.dart';
 
 class FollowingCompaniesScreen extends StatefulWidget {
@@ -36,16 +38,11 @@ class _FollowingCompaniesScreenState extends State<FollowingCompaniesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8FB),
+      backgroundColor: context.adaptiveScaffoldBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text(
-          'الشركات التي أتابعها',
-          style: TextStyle(color: Colors.black),
-        ),
+        title: Text(context.tr('following_companies')),
       ),
       body: Column(
         children: [
@@ -54,10 +51,10 @@ class _FollowingCompaniesScreenState extends State<FollowingCompaniesScreen> {
             child: TextField(
               onChanged: (v) => setState(() => _query = v.trim()),
               decoration: InputDecoration(
-                hintText: 'ابحث عن شركة...',
+                hintText: context.tr('search_company'),
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: context.adaptiveCardBg,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -80,7 +77,7 @@ class _FollowingCompaniesScreenState extends State<FollowingCompaniesScreen> {
                         const SizedBox(height: 80),
                         Center(
                           child: Text(
-                            'تعذر جلب الشركات المتابَعة\n${snapshot.error}',
+                            '${context.tr('following_companies_load_failed')}\n${snapshot.error}',
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.red),
                           ),
@@ -105,7 +102,7 @@ class _FollowingCompaniesScreenState extends State<FollowingCompaniesScreen> {
                   if (companies.isEmpty) {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
+                      children: [
                         SizedBox(height: 100),
                         Icon(
                           Icons.storefront_outlined,
@@ -113,7 +110,9 @@ class _FollowingCompaniesScreenState extends State<FollowingCompaniesScreen> {
                           color: Colors.black26,
                         ),
                         SizedBox(height: 12),
-                        Center(child: Text('لا تتابع أي شركة بعد')),
+                        Center(
+                          child: Text(context.tr('no_followed_companies')),
+                        ),
                       ],
                     );
                   }
@@ -144,9 +143,9 @@ class _CompanyFollowCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = (company['name'] ?? company['company_name'] ?? 'شركة').toString();
-    final location =
-        (company['city'] ?? company['location'] ?? '').toString();
+    final name =
+        (company['name'] ?? company['company_name'] ?? 'شركة').toString();
+    final location = (company['city'] ?? company['location'] ?? '').toString();
     final followers = company['followers_count'];
     final logoUrl = AppConstants.resolveImageUrl(
       company['logo'] ?? company['profile_image'] ?? company['avatar'],
@@ -157,7 +156,7 @@ class _CompanyFollowCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.adaptiveCardBg,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8),
@@ -222,9 +221,12 @@ class _CompanyFollowCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 2),
-                const Text(
-                  'معرض سيارات',
-                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                Text(
+                  context.tr('car_dealership'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.adaptiveTextSecondary,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -253,10 +255,10 @@ class _CompanyFollowCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        '$followers متابع',
-                        style: const TextStyle(
+                        '$followers ${context.tr('followers')}',
+                        style: TextStyle(
                           fontSize: 11.5,
-                          color: Colors.black54,
+                          color: context.adaptiveTextSecondary,
                         ),
                       ),
                     ],
@@ -271,8 +273,7 @@ class _CompanyFollowCard extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (_) => CompanyPublicProfileScreen(company: company),
+                  builder: (_) => CompanyPublicProfileScreen(company: company),
                 ),
               );
             },
@@ -281,7 +282,7 @@ class _CompanyFollowCard extends StatelessWidget {
               side: const BorderSide(color: AppColors.primary),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             ),
-            child: const Text('عرض الملف'),
+            child: Text(context.tr('view_profile')),
           ),
         ],
       ),

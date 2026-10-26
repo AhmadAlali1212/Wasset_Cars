@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mators_car/models/auction_model.dart';
+import 'package:mators_car/data/models/auction_model.dart';
 import 'package:mators_car/ulits/colors.dart';
 
 class BidHistoryItem extends StatelessWidget {

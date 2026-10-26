@@ -4,6 +4,7 @@ import 'package:mators_car/ulits/colors.dart';
 // --- English Themes ---
 ThemeData appThemeEnglish = ThemeData(
   brightness: Brightness.light,
+  colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryNavy),
   fontFamily: "PlayfairDisplay",
   scaffoldBackgroundColor: AppColors.bgLight,
   cardTheme: const CardThemeData(color: AppColors.surfaceLight),
@@ -25,6 +26,18 @@ ThemeData appThemeEnglish = ThemeData(
     ),
     backgroundColor: AppColors.bgLight,
   ),
+  inputDecorationTheme: const InputDecorationThemeData(
+    filled: true,
+    fillColor: AppColors.surfaceLight,
+    border: OutlineInputBorder(),
+  ),
+  dividerTheme: const DividerThemeData(color: AppColors.borderGrey),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: AppColors.primaryNavy,
+      foregroundColor: Colors.white,
+    ),
+  ),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
     backgroundColor: AppColors.primaryNavy,
   ),
@@ -45,6 +58,10 @@ ThemeData appThemeEnglish = ThemeData(
 
 ThemeData appThemeEnglishDark = ThemeData(
   brightness: Brightness.dark,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: AppColors.buttonBlue,
+    brightness: Brightness.dark,
+  ),
   fontFamily: "PlayfairDisplay",
   scaffoldBackgroundColor: AppColors.bgDark,
   cardTheme: const CardThemeData(color: AppColors.surfaceDark),
@@ -65,6 +82,18 @@ ThemeData appThemeEnglishDark = ThemeData(
       color: AppColors.textPrimaryDark,
     ),
     backgroundColor: AppColors.bgDark,
+  ),
+  inputDecorationTheme: const InputDecorationThemeData(
+    filled: true,
+    fillColor: AppColors.surfaceDark2,
+    border: OutlineInputBorder(),
+  ),
+  dividerTheme: const DividerThemeData(color: Colors.white24),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ButtonStyle(
+      backgroundColor: WidgetStatePropertyAll(AppColors.buttonBlue),
+      foregroundColor: WidgetStatePropertyAll(Colors.white),
+    ),
   ),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
     backgroundColor: AppColors.buttonBlue,
@@ -87,6 +116,7 @@ ThemeData appThemeEnglishDark = ThemeData(
 // --- Arabic Themes ---
 ThemeData appThemeArabic = ThemeData(
   brightness: Brightness.light,
+  colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryNavy),
   fontFamily: "Cairo",
   scaffoldBackgroundColor: AppColors.bgLight,
   cardTheme: const CardThemeData(color: AppColors.surfaceLight),
@@ -114,10 +144,26 @@ ThemeData appThemeArabic = ThemeData(
     ),
     bodyMedium: TextStyle(color: AppColors.textSecondaryLight, fontSize: 15),
   ),
+  inputDecorationTheme: const InputDecorationThemeData(
+    filled: true,
+    fillColor: AppColors.surfaceLight,
+    border: OutlineInputBorder(),
+  ),
+  dividerTheme: const DividerThemeData(color: AppColors.borderGrey),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: AppColors.primaryNavy,
+      foregroundColor: Colors.white,
+    ),
+  ),
 );
 
 ThemeData appThemeArabicDark = ThemeData(
   brightness: Brightness.dark,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: AppColors.buttonBlue,
+    brightness: Brightness.dark,
+  ),
   fontFamily: "Cairo",
   scaffoldBackgroundColor: AppColors.bgDark,
   cardTheme: const CardThemeData(color: AppColors.surfaceDark),
@@ -138,6 +184,18 @@ ThemeData appThemeArabicDark = ThemeData(
       color: AppColors.textPrimaryDark,
     ),
     backgroundColor: AppColors.bgDark,
+  ),
+  inputDecorationTheme: const InputDecorationThemeData(
+    filled: true,
+    fillColor: AppColors.surfaceDark2,
+    border: OutlineInputBorder(),
+  ),
+  dividerTheme: const DividerThemeData(color: Colors.white24),
+  elevatedButtonTheme: ElevatedButtonThemeData(
+    style: ButtonStyle(
+      backgroundColor: WidgetStatePropertyAll(AppColors.buttonBlue),
+      foregroundColor: WidgetStatePropertyAll(Colors.white),
+    ),
   ),
   floatingActionButtonTheme: const FloatingActionButtonThemeData(
     backgroundColor: AppColors.buttonBlue,

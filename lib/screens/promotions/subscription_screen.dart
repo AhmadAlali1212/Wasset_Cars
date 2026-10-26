@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mators_car/services/subscription_service.dart';
+import 'package:mators_car/services/controllers/subscription_service.dart';
 import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/screens/auth/storeg/auth_storage.dart';
 import 'package:mators_car/screens/company/company_wallet_screen.dart';
 import 'package:mators_car/screens/individual/individual_wallet_screen.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
@@ -52,12 +53,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if (!mounted) return;
       await _refresh();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم الاشتراك بنجاح ✅'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AppSnackbar.showSuccess(context, title: 'تم الاشتراك بنجاح');
       // ننتظر لحظة قصيرة ليرى المستخدم شارة "نشط" قبل الرجوع تلقائياً
       // للشاشة التي طلبت الاشتراك (إنشاء مزاد/عرض ترويجي...).
       await Future.delayed(const Duration(milliseconds: 900));
@@ -74,12 +70,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           message.contains('already subscribed')) {
         await _refresh();
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('أنت مشترك بالفعل ✅'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppSnackbar.showSuccess(context, title: 'أنت مشترك بالفعل');
         setState(() => _isActing = false);
         await Future.delayed(const Duration(milliseconds: 900));
         if (!mounted) return;
@@ -91,20 +82,17 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           _isActing = false;
           _actionError = 'رصيد محفظتك غير كافٍ لإتمام الاشتراك';
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('رصيد محفظتك غير كافٍ لإتمام الاشتراك'),
-            backgroundColor: Colors.red,
-            action: SnackBarAction(
-              label: 'شحن المحفظة',
-              textColor: Colors.white,
-              onPressed: _goToWallet,
-            ),
-          ),
+        AppSnackbar.showError(
+          context,
+          title: 'رصيدك غير كافٍ',
+          subtitle: 'رصيد محفظتك غير كافٍ لإتمام الاشتراك',
+          actionLabel: 'شحن المحفظة',
+          onAction: _goToWallet,
         );
         return;
       }
-      setState(() => _actionError = 'فشل الاشتراك: $e');
+      setState(() => _actionError = 'تعذّر إتمام الاشتراك');
+      AppSnackbar.showError(context, title: 'تعذّر إتمام الاشتراك', debugMessage: e);
     } finally {
       if (mounted) setState(() => _isActing = false);
     }
@@ -159,9 +147,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       await _subscriptionService.cancelSubscription();
       if (!mounted) return;
       await _refresh();
+      if (!mounted) return;
+      AppSnackbar.showSuccess(context, title: 'تم إلغاء الاشتراك بنجاح');
     } catch (e) {
       if (!mounted) return;
-      setState(() => _actionError = 'فشل إلغاء الاشتراك: $e');
+      setState(() => _actionError = 'تعذّر إلغاء الاشتراك');
+      AppSnackbar.showError(context, title: 'تعذّر إلغاء الاشتراك', debugMessage: e);
     } finally {
       if (mounted) setState(() => _isActing = false);
     }

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:mators_car/models/ad_model.dart';
-import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/ulits/contact_launcher.dart';
-import 'package:mators_car/services/rental_ad_service.dart';
-import 'package:mators_car/services/rental_booking_service.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/services/controllers/rental_ad_service.dart';
+import 'package:mators_car/services/controllers/rental_booking_service.dart';
+import 'package:mators_car/services/controllers/favorite_service.dart';
 import 'package:mators_car/screens/adsCar/rental/my_rental_bookings_screen.dart';
 import 'package:mators_car/screens/adsCar/sellCars/ad_map_screen.dart';
 import 'package:mators_car/screens/company/company_public_profile_screen.dart';
-import 'package:mators_car/widgets/seller_rating_badge.dart';
+import 'package:mators_car/screens/messages/chat_thread_screen.dart';
+import 'package:mators_car/widgets/rental/rental_ads/rental_ad_detail_widgets.dart';
 import '../../../widgets/auction/car_image_slider.dart';
 import '../../../widgets/section_header.dart';
 
@@ -22,8 +24,14 @@ class RentalAdDetailScreen extends StatefulWidget {
 class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
   final RentalAdService _rentalAdService = RentalAdService();
   final RentalBookingService _bookingService = RentalBookingService();
+  final FavoriteService _favoriteService = FavoriteService();
   bool _isFavorite = false;
+  bool _isFavoriteBusy = false;
   bool _isBooking = false;
+  // الفترات غير المتاحة (حجوزات مؤكدة + أيام حجبها المالك يدوياً)، تُستخدم
+  // لتعطيلها في تقويم اختيار تاريخ الحجز بدل تركها لتفشل فقط بعد الإرسال.
+  List<DateTimeRange> _unavailableRanges = [];
+  bool _loadingAvailability = true;
   late Ad _ad;
 
   @override
@@ -31,6 +39,82 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
     super.initState();
     _ad = widget.ad;
     _refreshAdDetails();
+    _loadFavoriteStatus();
+    _loadAvailability();
+  }
+
+  Future<void> _loadFavoriteStatus() async {
+    try {
+      final isFav = await _favoriteService.isFavorite(_ad.carId);
+      if (!mounted) return;
+      setState(() => _isFavorite = isFav);
+    } catch (_) {
+      // تجاهل بصمت: لا نريد كسر الشاشة إذا فشل هذا الطلب الثانوي فقط
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_isFavoriteBusy) return;
+    setState(() => _isFavoriteBusy = true);
+    final wasFavorite = _isFavorite;
+    try {
+      if (wasFavorite) {
+        await _favoriteService.removeFavorite(_ad.carId);
+      } else {
+        await _favoriteService.addFavorite(_ad.carId);
+      }
+      if (!mounted) return;
+      setState(() => _isFavorite = !wasFavorite);
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر تحديث المفضلة',
+        debugMessage: e,
+      );
+    } finally {
+      if (mounted) setState(() => _isFavoriteBusy = false);
+    }
+  }
+
+  // جلب الأيام غير المتاحة من الخادم (حجوزات مؤكدة + حجب يدوي من المالك)
+  Future<void> _loadAvailability() async {
+    try {
+      final ranges = await _rentalAdService.getUnavailableRanges(_ad.id);
+      if (!mounted) return;
+      setState(() {
+        _unavailableRanges =
+            ranges.map((r) {
+              final start = DateTime.parse(r['start_date'] as String);
+              final end = DateTime.parse(r['end_date'] as String);
+              return DateTimeRange(start: start, end: end);
+            }).toList();
+        _loadingAvailability = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingAvailability = false);
+    }
+  }
+
+  bool _isDateBlocked(DateTime day) {
+    final d = DateTime(day.year, day.month, day.day);
+    for (final range in _unavailableRanges) {
+      final start = DateTime(
+        range.start.year,
+        range.start.month,
+        range.start.day,
+      );
+      final end = DateTime(range.end.year, range.end.month, range.end.day);
+      if (!d.isBefore(start) && !d.isAfter(end)) return true;
+    }
+    return false;
+  }
+
+  bool _rangeOverlapsBlocked(DateTime start, DateTime end) {
+    for (var d = start; !d.isAfter(end); d = d.add(const Duration(days: 1))) {
+      if (_isDateBlocked(d)) return true;
+    }
+    return false;
   }
 
   // إعادة جلب أحدث بيانات إعلان التأجير من الخادم عبر GET /rental-ads/{id}
@@ -53,31 +137,63 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
   }
 
   // اختيار تاريخ البداية والنهاية ثم إرسال طلب الحجز فعلياً عبر RentalBookingService
+  // الأيام التي حددها المالك كغير متاحة (أو محجوزة فعلياً) تظهر معطّلة
+  // (غير قابلة للاختيار) مباشرة في التقويم، بدل اكتشاف التعارض بعد الإرسال.
   Future<void> _showBookingDialog() async {
+    if (_loadingAvailability) {
+      AppSnackbar.showError(
+        context,
+        title: 'جاري تحميل أيام التوفر، حاول بعد لحظات',
+      );
+      return;
+    }
+
     final now = DateTime.now();
     final startDate = await showDatePicker(
       context: context,
-      initialDate: now.add(const Duration(days: 1)),
+      initialDate: _firstAvailableDayFrom(now.add(const Duration(days: 1))),
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
-      helpText: 'اختر تاريخ بداية التأجير',
+      helpText: 'اختر تاريخ بداية التأجير (الأيام المظللة غير متاحة)',
+      selectableDayPredicate: (day) => !_isDateBlocked(day),
     );
     if (startDate == null || !mounted) return;
 
+    final minEnd = startDate.add(const Duration(days: 1));
     final endDate = await showDatePicker(
       context: context,
-      initialDate: startDate.add(const Duration(days: 1)),
-      firstDate: startDate.add(const Duration(days: 1)),
+      initialDate: _firstAvailableDayFrom(minEnd, stopAt: startDate),
+      firstDate: minEnd,
       lastDate: startDate.add(const Duration(days: 365)),
-      helpText: 'اختر تاريخ نهاية التأجير',
+      helpText: 'اختر تاريخ نهاية التأجير (الأيام المظللة غير متاحة)',
+      // نمنع اختيار أي تاريخ نهاية يجعل الفترة الكاملة تتقاطع مع يوم محجوب
+      selectableDayPredicate: (day) => !_rangeOverlapsBlocked(startDate, day),
     );
     if (endDate == null || !mounted) return;
+
+    if (_rangeOverlapsBlocked(startDate, endDate)) {
+      AppSnackbar.showError(
+        context,
+        title: 'الفترة المختارة تتضمن أياماً غير متاحة، اختر فترة أخرى',
+      );
+      return;
+    }
 
     await _submitBooking(startDate, endDate);
   }
 
+  // أول يوم متاح ابتداءً من تاريخ معيّن (لتفادي فتح التقويم على يوم محجوب)
+  DateTime _firstAvailableDayFrom(DateTime from, {DateTime? stopAt}) {
+    var d = from;
+    var guard = 0;
+    while (_isDateBlocked(d) && guard < 400) {
+      d = d.add(const Duration(days: 1));
+      guard++;
+    }
+    return d;
+  }
+
   Future<void> _submitBooking(DateTime startDate, DateTime endDate) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     setState(() => _isBooking = true);
     try {
       await _bookingService.createBooking(
@@ -86,15 +202,12 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
         endDate: endDate,
       );
       if (!mounted) return;
+      await _loadAvailability(); // تحديث الأيام المتاحة فوراً بعد الحجز الجديد
+      if (!mounted) return;
       // مجرد Snackbar لا يكفي لإقناع المستخدم أن الحجز فعلاً تسجّل، خصوصاً
       // أن هذه الشاشة نفسها لا تعرض أي حالة "محجوز" بعدها. لذلك نأخذه
       // مباشرة لشاشة "حجوزاتي" ليرى حجزه الجديد ضمن القائمة كتأكيد ملموس.
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('تم إرسال طلب الحجز بنجاح'),
-          backgroundColor: AppColors.primary,
-        ),
-      );
+      AppSnackbar.showSuccess(context, title: 'تم إرسال طلب الحجز بنجاح');
       if (!mounted) return;
       await Navigator.push(
         context,
@@ -102,8 +215,10 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشل إرسال طلب الحجز: ${e.toString()}')),
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إرسال طلب الحجز',
+        debugMessage: e,
       );
     } finally {
       if (mounted) setState(() => _isBooking = false);
@@ -138,11 +253,9 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم تجهيز رابط التأجير للمشاركة'),
-                  backgroundColor: AppColors.primary,
-                ),
+              AppSnackbar.showSuccess(
+                context,
+                title: 'تم تجهيز رابط التأجير للمشاركة',
               );
             },
           ),
@@ -151,7 +264,7 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
               _isFavorite ? Icons.favorite : Icons.favorite_border,
               color: _isFavorite ? Colors.red : Colors.black,
             ),
-            onPressed: () => setState(() => _isFavorite = !_isFavorite),
+            onPressed: _isFavoriteBusy ? null : _toggleFavorite,
           ),
         ],
       ),
@@ -177,90 +290,24 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                       const SizedBox(height: 16),
 
                       // أزرار عرض السعر المزدوجة المتطابقة مع الصورة تماماً
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Column(
-                                children: [
-                                  const Text(
-                                    'السعر اليومي',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${_ad.dailyPrice} ل.س',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.06,
-                                ),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Text(
-                                    'السعر الشهري',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${_ad.monthlyPrice} ل.س',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 15,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                      RentalPriceRow(
+                        dailyPrice: _ad.dailyPrice,
+                        monthlyPrice: _ad.monthlyPrice,
                       ),
                       const SizedBox(height: 20),
 
                       // شبكة الخصائص الثمانية الكاملة للتأجير من الصورة الثالثة
-                      _buildEightRentalSpecs(),
+                      RentalEightSpecsGrid(ad: _ad),
                       const SizedBox(height: 24),
 
                       const SectionHeader(title: 'شروط التأجير'),
                       const SizedBox(height: 10),
-                      _buildConditionsCheckList(),
+                      const RentalConditionsChecklist(),
                       const SizedBox(height: 24),
 
                       const SectionHeader(title: 'المميزات'),
                       const SizedBox(height: 10),
-                      _buildChipsFeatures(),
+                      const RentalFeatureChips(),
                       const SizedBox(height: 24),
 
                       // كارت معلومات المالك مع خريطة مصغرة لموقع استلام السيارة
@@ -268,7 +315,32 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
                         title: 'معلومات المؤجر وموقع الاستلام',
                       ),
                       const SizedBox(height: 12),
-                      _buildOwnerAndMapCard(),
+                      RentalOwnerAndMapCard(
+                        ad: _ad,
+                        onTapOwner: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => CompanyPublicProfileScreen(
+                                    company: {
+                                      'id': _ad.userId,
+                                      'name': _ad.contactName,
+                                      'phone': _ad.contactPhone,
+                                    },
+                                  ),
+                            ),
+                          );
+                        },
+                        onTapMap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AdMapScreen(ad: _ad),
+                            ),
+                          );
+                        },
+                      ),
                       const SizedBox(height: 110),
                     ],
                   ),
@@ -281,332 +353,34 @@ class _RentalAdDetailScreenState extends State<RentalAdDetailScreen> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  IconButton(
-                    onPressed:
-                        () => ContactLauncher.whatsapp(
-                          context,
-                          widget.ad.contactPhone,
-                          message:
-                              'مرحباً، أنا مهتم بإعلان تأجير ${widget.ad.car.make} '
-                              '${widget.ad.car.model} ${widget.ad.car.year} على تطبيق Syria Motor.',
+            child: RentalDetailsBottomActionBar(
+              isBooking: _isBooking,
+              onMessage: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (_) => ChatThreadScreen(
+                          partnerId: widget.ad.userId,
+                          partnerName:
+                              widget.ad.contactName.isNotEmpty
+                                  ? widget.ad.contactName
+                                  : 'مستخدم Syria Motor',
                         ),
-                    icon: Icon(
-                      Icons.chat_bubble_outline,
-                      color: AppColors.primary,
-                    ),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.grey.shade100,
-                      minimumSize: const Size(50, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed:
-                        () => ContactLauncher.call(
-                          context,
-                          widget.ad.contactPhone,
-                        ),
-                    icon: Icon(Icons.phone_outlined, color: AppColors.primary),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.grey.shade100,
-                      minimumSize: const Size(50, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                );
+              },
+              onWhatsapp:
+                  () => ContactLauncher.whatsapp(
+                    context,
+                    widget.ad.contactPhone,
+                    message:
+                        'مرحباً، أنا مهتم بإعلان تأجير ${widget.ad.car.make} '
+                        '${widget.ad.car.model} ${widget.ad.car.year} على تطبيق Syria Motor.',
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _isBooking ? null : _showBookingDialog,
-                      style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
-                        backgroundColor: AppColors.primary,
-                        maximumSize: Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child:
-                          _isBooking
-                              ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                              : const Text(
-                                'احجز الآن الموعد',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEightRentalSpecs() {
-    final items = [
-      {
-        'title': 'الموقع',
-        'val': _ad.car.location,
-        'icon': Icons.location_on_outlined,
-      },
-      {
-        'title': 'السنة',
-        'val': _ad.car.year.toString(),
-        'icon': Icons.calendar_today_outlined,
-      },
-      {
-        'title': 'العداد',
-        'val':
-            _ad.car.mileage != null ? '${_ad.car.mileage} كم' : 'غير محدد',
-        'icon': Icons.speed_outlined,
-      },
-      {
-        'title': 'نوع الوقود',
-        'val': _ad.car.fuelType ?? 'غير محدد',
-        'icon': Icons.local_gas_station_outlined,
-      },
-      {'title': 'التأمين', 'val': 'شامل وتام', 'icon': Icons.shield_outlined},
-      {'title': 'التكييف', 'val': 'ممتاز', 'icon': Icons.ac_unit},
-      {
-        'title': 'عدد المقاعد',
-        'val': '5 مقاعد',
-        'icon': Icons.airline_seat_recline_normal,
-      },
-      {
-        'title': 'ناقل الحركة',
-        'val': _ad.car.transmission ?? 'غير محدد',
-        'icon': Icons.settings_input_component,
-      },
-    ];
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        childAspectRatio: 0.9,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                items[index]['icon'] as IconData,
-                color: AppColors.primary,
-                size: 20,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                items[index]['val'] as String,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 10,
-                ),
-                maxLines: 1,
-              ),
-              Text(
-                items[index]['title'] as String,
-                style: const TextStyle(color: Colors.grey, fontSize: 8),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildConditionsCheckList() {
-    final conditions = [
-      'العمر فوق 21 سنة',
-      'رخصة قيادة سارية',
-      'تأمين شامل للسيارة',
-      'دفع عربون مسترد',
-    ];
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        children:
-            conditions
-                .map(
-                  (cond) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          cond,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const Icon(
-                          Icons.check_circle,
-                          color: Colors.green,
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-                .toList(),
-      ),
-    );
-  }
-
-  Widget _buildChipsFeatures() {
-    final features = [
-      'Bluetooth',
-      'GPS',
-      'USB',
-      'مثبت سرعة',
-      'ABS',
-      'كاميرا خلفية',
-    ];
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children:
-          features
-              .map(
-                (f) => Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Text(
-                    f,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.blueGrey,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-    );
-  }
-
-  Widget _buildOwnerAndMapCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (_) => CompanyPublicProfileScreen(
-                        company: {
-                          'id': _ad.userId,
-                          'name': _ad.contactName,
-                          'phone': _ad.contactPhone,
-                        },
-                      ),
-                ),
-              );
-            },
-            child: Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                child: Icon(Icons.person, color: AppColors.primary, size: 22),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _ad.contactName.isNotEmpty
-                          ? _ad.contactName
-                          : 'مستخدم Syria Motor',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SellerRatingBadge(userId: _ad.userId, fontSize: 11),
-            ],
-          ),
-          ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => AdMapScreen(ad: _ad)),
-              );
-            },
-            child: Container(
-              height: 100,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(12),
-                image: const DecorationImage(
-                  image: AssetImage('assets/image/intro.jpg'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              child: const Center(
-                child: Icon(Icons.location_pin, color: Colors.red, size: 32),
-              ),
+              onCall:
+                  () => ContactLauncher.call(context, widget.ad.contactPhone),
+              onBookNow: _showBookingDialog,
             ),
           ),
         ],

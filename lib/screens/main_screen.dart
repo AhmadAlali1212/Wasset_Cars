@@ -6,7 +6,9 @@ import 'package:mators_car/screens/auction/auctions_screen.dart';
 import 'package:mators_car/screens/adsCar/rental/rentalAds_screen.dart'; // صفحة التأجير المحدثة
 import 'package:mators_car/screens/adsCar/sellCars/home_ads_screen.dart'; // سيارات التطبيق المعروضة للمستخدمين
 import 'package:mators_car/screens/promotions/promoted_cars_screen.dart';
-import 'package:mators_car/services/auth_serivces.dart';
+import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -106,23 +108,20 @@ class _MainScreenState extends State<MainScreen>
       });
     }
 
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
-        body: Stack(
-          children: [
-            SlideTransition(
-              position: _slideAnimation,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: screens[safeIndex],
-              ),
+    return Scaffold(
+      backgroundColor: context.adaptiveScaffoldBg,
+      body: Stack(
+        children: [
+          SlideTransition(
+            position: _slideAnimation,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: screens[safeIndex],
             ),
-          ],
-        ),
-        bottomNavigationBar: _buildModernNavBar(isCompanyAccount),
+          ),
+        ],
       ),
+      bottomNavigationBar: _buildModernNavBar(isCompanyAccount),
     );
   }
 
@@ -134,7 +133,7 @@ class _MainScreenState extends State<MainScreen>
         child: Container(
           height: 72,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.adaptiveCardBg,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
@@ -148,18 +147,24 @@ class _MainScreenState extends State<MainScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_filled, 'الرئيسية'),
+              _buildNavItem(0, Icons.home_filled, context.tr('home')),
               _buildNavItem(
                 1,
                 Icons.car_rental_outlined,
-                'التأجير',
+                context.tr('rentals'),
               ), // الأيقونة المحدثة للتأجير
-              _buildNavItem(2, Icons.local_offer_outlined, 'العروض'),
-              _buildNavItem(3, Icons.gavel_rounded, 'المزادات'),
+              _buildNavItem(
+                2,
+                Icons.local_offer_outlined,
+                context.tr('offers'),
+              ),
+              _buildNavItem(3, Icons.gavel_rounded, context.tr('auctions')),
               _buildNavItem(
                 4,
                 Icons.storefront_outlined,
-                isCompany ? 'لوحة المعرض' : 'لوحة التحكم',
+                isCompany
+                    ? context.tr('company_dashboard')
+                    : context.tr('dashboard'),
               ),
             ],
           ),
@@ -170,8 +175,8 @@ class _MainScreenState extends State<MainScreen>
 
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentIndex == index;
-    final activeColor = const Color(0xFF0F4C81);
-    final inactiveColor = Colors.grey.shade400;
+    final activeColor = Theme.of(context).colorScheme.primary;
+    final inactiveColor = context.adaptiveTextSecondary;
 
     return GestureDetector(
       onTap: () => _onTabTapped(index),

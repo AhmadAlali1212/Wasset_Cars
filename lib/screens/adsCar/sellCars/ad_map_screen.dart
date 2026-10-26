@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:mators_car/ulits/map_utils.dart';
-import 'package:mators_car/models/ad_model.dart';
+import 'package:mators_car/data/models/ad_model.dart';
 
 // كانت هذه الشاشة تستخدم flutter_map مع بلاطات OpenStreetMap
 // (tile.openstreetmap.org)، وكانت هذه البلاطات تفشل بالتحميل على جهاز

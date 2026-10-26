@@ -1,8 +1,9 @@
 // screens/workshops/workshop_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:mators_car/models/workshop_model.dart';
+import 'package:mators_car/data/models/workshop_model.dart';
 import 'package:mators_car/widgets/section_header.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/contact_launcher.dart';
 
@@ -21,12 +22,7 @@ class WorkshopDetailScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('تم تجهيز رابط الورشة للمشاركة'),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
+              AppSnackbar.showSuccess(context, title: 'تم تجهيز رابط الورشة للمشاركة');
             },
           ),
         ],

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/ulits/colors.dart';
 
-import '../../models/workshop_model.dart';
+import 'package:mators_car/data/models/workshop_model.dart';
 
 class WorkshopCard extends StatelessWidget {
   final Workshop workshop;

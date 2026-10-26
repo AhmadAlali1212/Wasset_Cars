@@ -1,7 +1,7 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:mators_car/services/notification_service.dart';
+import 'package:mators_car/services/unread_notification_controller.dart';
 import 'package:mators_car/screens/notifications/notifications_screen.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 
 /// رأس صفحة موحّد بنفس تصميم الشاشة الرئيسية بالضبط: جرس إشعارات (مع عداد
 /// غير مقروء يُحدَّث دورياً)، عنوان بالمنتصف، أيقونة قائمة، وصندوق بحث
@@ -28,38 +28,31 @@ class AppHomeStyleHeader extends StatefulWidget {
 }
 
 class _AppHomeStyleHeaderState extends State<AppHomeStyleHeader> {
-  final NotificationService _notificationService = NotificationService();
-  int _unreadNotifCount = 0;
-  Timer? _notifPollTimer;
+  final UnreadNotificationController _notifController =
+      UnreadNotificationController.instance;
 
   @override
   void initState() {
     super.initState();
-    _refreshUnreadNotifCount();
-    _notifPollTimer = Timer.periodic(
-      const Duration(seconds: 30),
-      (_) => _refreshUnreadNotifCount(),
-    );
+    // مصدر واحد مشترك بين كل الشاشات (بدل مؤقت وطلب منفصل بكل Header)
+    _notifController.attach();
+    _notifController.addListener(_onNotifCountChanged);
   }
 
   @override
   void dispose() {
-    _notifPollTimer?.cancel();
+    _notifController.removeListener(_onNotifCountChanged);
+    _notifController.detach();
     super.dispose();
   }
 
-  Future<void> _refreshUnreadNotifCount() async {
-    try {
-      final page = await _notificationService.getNotifications(page: 1);
-      if (!mounted) return;
-      setState(() => _unreadNotifCount = page.unreadCount);
-    } catch (_) {
-      // فشل صامت — عداد خلفي، لا يستحق إزعاج المستخدم
-    }
+  void _onNotifCountChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final unreadNotifCount = _notifController.unreadCount;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -71,7 +64,7 @@ class _AppHomeStyleHeaderState extends State<AppHomeStyleHeader> {
                 clipBehavior: Clip.none,
                 children: [
                   const Icon(Icons.notifications_none_outlined, size: 28),
-                  if (_unreadNotifCount > 0)
+                  if (unreadNotifCount > 0)
                     Positioned(
                       top: -2,
                       right: -2,
@@ -90,7 +83,7 @@ class _AppHomeStyleHeaderState extends State<AppHomeStyleHeader> {
                           border: Border.all(color: Colors.white, width: 1.5),
                         ),
                         child: Text(
-                          _unreadNotifCount > 9 ? '9+' : '$_unreadNotifCount',
+                          unreadNotifCount > 9 ? '9+' : '$unreadNotifCount',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white,
@@ -109,7 +102,7 @@ class _AppHomeStyleHeaderState extends State<AppHomeStyleHeader> {
                     builder: (context) => const NotificationsScreen(),
                   ),
                 );
-                _refreshUnreadNotifCount();
+                _notifController.refresh();
               },
             ),
             Text(
@@ -123,9 +116,7 @@ class _AppHomeStyleHeaderState extends State<AppHomeStyleHeader> {
             IconButton(
               icon: const Icon(Icons.menu, size: 28),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('قائمة التنقل ستظهر في نسخة لاحقة')),
-                );
+                AppSnackbar.showInfo(context, title: 'قائمة التنقل ستظهر في نسخة لاحقة');
               },
             ),
           ],

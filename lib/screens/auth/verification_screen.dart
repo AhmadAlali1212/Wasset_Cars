@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mators_car/services/auth_serivces.dart';
+import 'package:mators_car/services/controllers/auth_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
@@ -64,9 +64,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               ?.toString()) ??
           'حدث خطأ أثناء التفعيل';
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        AppSnackbar.showError(context, title: 'تعذّر التفعيل', subtitle: message);
       }
     } finally {
       if (mounted) {
@@ -83,11 +81,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم إرسال رمز جديد إلى البريد الإلكتروني'),
-        ),
-      );
+      AppSnackbar.showSuccess(context, title: 'تم إرسال رمز جديد إلى البريد الإلكتروني');
     } on DioException catch (e) {
       final String message =
           ((e.response?.data is Map
@@ -96,9 +90,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               ?.toString()) ??
           'تعذر إعادة إرسال الرمز';
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        AppSnackbar.showError(context, title: 'تعذّر إعادة إرسال الرمز', subtitle: message);
       }
     } finally {
       if (mounted) {

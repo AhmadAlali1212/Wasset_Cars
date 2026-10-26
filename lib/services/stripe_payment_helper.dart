@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:mators_car/ulits/constant.dart';
 
 /// نتيجة محاولة الدفع عبر Stripe.
 enum StripePaymentOutcome { success, canceled, failed }
@@ -31,7 +33,10 @@ class StripePaymentHelper {
     bytes[6] = (bytes[6] & 0x0F) | 0x40; // نسخة UUID v4
     bytes[8] = (bytes[8] & 0x3F) | 0x80; // variant RFC 4122
     String hex(int start, int end) =>
-        bytes.sublist(start, end).map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+        bytes
+            .sublist(start, end)
+            .map((b) => b.toRadixString(16).padLeft(2, '0'))
+            .join();
     return '${hex(0, 4)}-${hex(4, 6)}-${hex(6, 8)}-${hex(8, 10)}-${hex(10, 16)}';
   }
 
@@ -56,7 +61,12 @@ class StripePaymentHelper {
   }
 
   static String? extractRequestId(Map<String, dynamic> response) {
-    return _pick(response, ['request_id', 'requestId', 'id', 'topup_request_id']);
+    return _pick(response, [
+      'request_id',
+      'requestId',
+      'id',
+      'topup_request_id',
+    ]);
   }
 
   // نأخذ المفتاح العلني مباشرة من رد /wallet/stripe/create-intent
@@ -126,13 +136,28 @@ class StripePaymentHelper {
           paymentIntentClientSecret: clientSecret,
           merchantDisplayName: merchantDisplayName,
           style: ThemeMode.system,
+          // ⬅️ جديد: تفعيل Apple Pay / Google Pay ضمن ورقة الدفع الموحّدة.
+          // Stripe نفسه يتولى إظهار الزر المناسب حسب الجهاز (Apple Pay
+          // على iOS المهيّأ، Google Pay على أندرويد) — لا حاجة لتصميم UI
+          // منفصل لكل واحد؛ يكفي هذان الإعدادان + Stripe.merchantIdentifier
+          // (لآبل) المضبوط بـ main.dart.
+          applePay: PaymentSheetApplePay(
+            merchantCountryCode: AppConstants.stripeMerchantCountryCode,
+          ),
+          googlePay: PaymentSheetGooglePay(
+            merchantCountryCode: AppConstants.stripeMerchantCountryCode,
+            currencyCode: AppConstants.stripeCurrencyCode,
+            // ⚠️ اجعلها false تلقائياً بوضع الإنتاج الحقيقي؛ صحيح فقط أثناء
+            // الاختبار بحساب Stripe Test.
+            testEnv: kDebugMode,
+          ),
         ),
       );
       await Stripe.instance.presentPaymentSheet();
       return const StripePaymentResult(StripePaymentOutcome.success);
     } on StripeException catch (e) {
-      final message = (e.error.localizedMessage ?? e.error.message ?? '')
-          .toString();
+      final message =
+          (e.error.localizedMessage ?? e.error.message ?? '').toString();
       final codeText = e.error.code.toString().toLowerCase();
       final isCanceled =
           codeText.contains('cancel') ||

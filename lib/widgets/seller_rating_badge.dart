@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mators_car/services/rating_service.dart';
+import 'package:mators_car/services/controllers/rating_service.dart';
 
 /// شارة تقييم صغيرة تُحمّل متوسط تقييمات مستخدم حقيقي من الـ API
 /// (GET /users/{id}/ratings) بدل الأرقام الثابتة الوهمية التي كانت

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/screens/adsCar/manage/add_sale_ad_screen.dart';
-import 'package:mators_car/services/ads_service.dart';
+import 'package:mators_car/services/controllers/ads_service.dart';
+import 'package:mators_car/services/controllers/user_search_service.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/widgets/common/skeleton_loader.dart';
+import 'package:mators_car/ulits/localization/app_localizations.dart';
+import 'package:mators_car/widgets/manage-adsCar/sale_ads_list_widgets.dart';
 
 /// عنصر واجهة قابل لإعادة الاستخدام يعرض إعلانات البيع الخاصة بالمستخدم
 /// (فردي أو معرض) مع إمكانية: نشر الإعلان، تعديل السعر، حذف الإعلان.
@@ -15,6 +19,7 @@ class SaleAdsList extends StatefulWidget {
 
 class _SaleAdsListState extends State<SaleAdsList> {
   final AdsService _adsService = AdsService();
+  final UserSearchService _userSearchService = UserSearchService();
   late Future<List<Map<String, dynamic>>> _adsFuture;
   String _statusFilter = 'active'; // active | expired | all
 
@@ -34,17 +39,17 @@ class _SaleAdsListState extends State<SaleAdsList> {
     switch (status) {
       case 'active':
       case 'approved':
-        return 'منشور';
+        return context.tr('published');
       case 'pending':
-        return 'بانتظار المراجعة';
+        return context.tr('pending_review');
       case 'rejected':
-        return 'مرفوض';
+        return context.tr('rejected');
       case 'draft':
-        return 'مسودة (غير مسعّر)';
+        return context.tr('draft_unpriced');
       case 'expired':
-        return 'منتهي';
+        return context.tr('expired');
       default:
-        return status ?? 'غير معروف';
+        return status ?? context.tr('unknown');
     }
   }
 
@@ -75,50 +80,52 @@ class _SaleAdsListState extends State<SaleAdsList> {
   }
 
   Future<void> _publishAd(Map<String, dynamic> ad) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       await _adsService.publishAd(ad['id'] as int);
       await _refresh();
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('تم نشر الإعلان بنجاح')),
-      );
+      if (!mounted) return;
+      AppSnackbar.showSuccess(context, title: context.tr('ad_published'));
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشل نشر الإعلان: $e')),
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: context.tr('publish_ad_failed'),
+        debugMessage: e,
       );
     }
   }
 
-  // "تم البيع" — لا يوفّر الـ API حالياً حقل/endpoint حالة "مباع" منفصل عن
-  // الحذف (لا يوجد PATCH لحالة الإعلان)، فآلية إتمام البيع بالكامل يدوية
-  // خارج التطبيق (اتصال/واتساب مباشر مع المشتري كما في AdDetailScreen).
-  // لذلك أقرب إجراء حقيقي متاح هو إزالة الإعلان من المعرض العام لأنه لم
-  // يعد متاحاً، عبر نفس DELETE /my-ads/{id} المستخدم بالحذف، لكن بتسمية
-  // ورسالة تأكيد مختلفة توضّح للبائع فعلياً ماذا سيحدث.
+  // ⬅️ استبدال حل الحذف الالتفافي القديم بـ /my-ads/{id}/mark-sold الحقيقي
+  // الذي يحتفظ بالسجل بدل حذفه، مع اختيار اختياري للمشتري الفعلي (بحث
+  // بالاسم/الهاتف عبر /users/search) لتفعيل نظام التقييم بعدها.
   Future<void> _markAsSold(Map<String, dynamic> ad) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final selectedBuyer = await _pickBuyerDialog();
+    if (!mounted) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (dialogContext) => AlertDialog(
-            title: const Text('تأكيد البيع'),
-            content: const Text(
-              'بضغطك "تم البيع" ستتم إزالة هذا الإعلان من المعرض العام '
-              'لأن السيارة لم تعد متاحة. لا تتوفر حالياً خاصية "مباع" '
-              'منفصلة عن الحذف، ولا يمكن التراجع عن هذا الإجراء.',
+            title: Text(context.tr('confirm_sale')),
+            content: Text(
+              selectedBuyer != null
+                  ? 'سيتم تعليم هذا الإعلان كـ "مباع" وربطه بالمشتري '
+                      '"${selectedBuyer['name']}"، ليصبح بإمكان الطرفين تقييم بعضهما لاحقاً.'
+                  : 'سيتم تعليم هذا الإعلان كـ "مباع". يبقى سجل الإعلان محفوظاً '
+                      '(لن يُحذف)، لكن دون ربط بمشتري محدد.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('إلغاء'),
+                child: Text(context.tr('cancel')),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
                 style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                  foregroundColor: Colors.white,
                   backgroundColor: AppColors.success,
                 ),
-                child: const Text('تم البيع'),
+                child: Text(context.tr('sold')),
               ),
             ],
           ),
@@ -126,41 +133,128 @@ class _SaleAdsListState extends State<SaleAdsList> {
     if (confirmed != true) return;
 
     try {
-      await _adsService.deleteAd(ad['id'] as int);
+      await _adsService.markSold(
+        ad['id'] as int,
+        buyerId:
+            selectedBuyer != null ? (selectedBuyer['id'] as num).toInt() : null,
+      );
       await _refresh();
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Text('تم تسجيل البيع وإزالة الإعلان من المعرض 🎉'),
-          backgroundColor: AppColors.success,
-        ),
+      if (!mounted) return;
+      AppSnackbar.showSuccess(
+        context,
+        title: context.tr('sale_recorded'),
+        subtitle: context.tr('ad_saved_as_sold'),
       );
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('تعذر تسجيل البيع: $e')),
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر تسجيل البيع',
+        debugMessage: e,
       );
     }
   }
 
+  // بحث اختياري عن المشتري الفعلي؛ يعيد null إن تخطّى المستخدم الخطوة
+  Future<Map<String, dynamic>?> _pickBuyerDialog() async {
+    final controller = TextEditingController();
+    List<Map<String, dynamic>> results = [];
+    bool isSearching = false;
+
+    return showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> runSearch(String query) async {
+              setDialogState(() => isSearching = true);
+              try {
+                final found = await _userSearchService.search(query);
+                setDialogState(() {
+                  results = found;
+                  isSearching = false;
+                });
+              } catch (_) {
+                setDialogState(() => isSearching = false);
+              }
+            }
+
+            return AlertDialog(
+              title: Text(context.tr('choose_buyer_optional')),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(
+                        hintText: context.tr('search_buyer_hint'),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        if (value.trim().length >= 2) runSearch(value);
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    if (isSearching)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else if (results.isNotEmpty)
+                      SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: results.length,
+                          itemBuilder: (context, index) {
+                            final user = results[index];
+                            return ListTile(
+                              title: Text(user['name']?.toString() ?? ''),
+                              subtitle: Text(
+                                user['phone_number']?.toString() ?? '',
+                              ),
+                              onTap: () => Navigator.pop(dialogContext, user),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, null),
+                  child: Text(context.tr('skip_without_buyer')),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _deleteAd(Map<String, dynamic> ad) async {
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder:
           (dialogContext) => AlertDialog(
-            title: const Text('حذف الإعلان'),
-            content: const Text('هل أنت متأكد من حذف هذا الإعلان؟'),
+            title: Text(context.tr('delete_ad')),
+            content: Text(context.tr('confirm_delete_ad')),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('إلغاء'),
+                child: Text(context.tr('cancel')),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
                 style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                  foregroundColor: Colors.white,
                   backgroundColor: AppColors.error,
                 ),
-                child: const Text('حذف'),
+                child: Text(context.tr('delete')),
               ),
             ],
           ),
@@ -170,12 +264,14 @@ class _SaleAdsListState extends State<SaleAdsList> {
     try {
       await _adsService.deleteAd(ad['id'] as int);
       await _refresh();
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('تم حذف الإعلان بنجاح')),
-      );
+      if (!mounted) return;
+      AppSnackbar.showSuccess(context, title: context.tr('ad_deleted'));
     } catch (e) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text('فشل حذف الإعلان: $e')),
+      if (!mounted) return;
+      AppSnackbar.showError(
+        context,
+        title: context.tr('delete_ad_failed'),
+        debugMessage: e,
       );
     }
   }
@@ -192,53 +288,15 @@ class _SaleAdsListState extends State<SaleAdsList> {
     return ads.where((ad) => ad['status']?.toString() != 'expired').toList();
   }
 
-  Widget _buildStatusFilterChips() {
-    final filters = const [
-      {'key': 'active', 'label': 'إعلانات نشطة'},
-      {'key': 'expired', 'label': 'إعلانات منتهية'},
-      {'key': 'all', 'label': 'الكل'},
-    ];
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-        itemCount: filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final filter = filters[index];
-          final selected = _statusFilter == filter['key'];
-          return ChoiceChip(
-            label: Text(filter['label']!),
-            selected: selected,
-            onSelected: (_) => setState(() => _statusFilter = filter['key']!),
-            showCheckmark: false,
-            selectedColor: AppColors.primary,
-            backgroundColor: Colors.white,
-            labelStyle: TextStyle(
-              color: selected ? Colors.white : Colors.black87,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(
-                color: selected ? AppColors.primary : Colors.grey.shade300,
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  Widget _buildStatusFilterChips() => SaleAdsStatusFilterChips(
+        selectedStatus: _statusFilter,
+        onSelect: (key) => setState(() => _statusFilter = key),
+      );
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
-        _buildStatusFilterChips(),
-        Expanded(child: _buildList()),
-      ],
+      children: [_buildStatusFilterChips(), Expanded(child: _buildList())],
     );
   }
 
@@ -247,7 +305,7 @@ class _SaleAdsListState extends State<SaleAdsList> {
       future: _adsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const SkeletonList(itemCount: 6);
         }
         if (snapshot.hasError) {
           return Center(
@@ -265,209 +323,22 @@ class _SaleAdsListState extends State<SaleAdsList> {
         final allAds = snapshot.data ?? [];
         final ads = _applyStatusFilter(allAds);
         if (allAds.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 100),
-                Center(
-                  child: Column(
-                    children: [
-                      Icon(Icons.campaign_outlined, size: 70, color: Colors.grey),
-                      SizedBox(height: 14),
-                      Text('لا توجد إعلانات بيع بعد'),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
+          return SaleAdsEmptyState(onRefresh: _refresh);
         }
 
         if (ads.isEmpty) {
-          return RefreshIndicator(
-            onRefresh: _refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              children: const [
-                SizedBox(height: 100),
-                Center(child: Text('لا توجد إعلانات في هذا القسم')),
-              ],
-            ),
-          );
+          return SaleAdsFilteredEmptyState(onRefresh: _refresh);
         }
 
-        return RefreshIndicator(
+        return SaleAdsListView(
+          ads: ads,
           onRefresh: _refresh,
-          child: ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: ads.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final ad = ads[index];
-              final price = ad['price']?.toString() ?? '-';
-              final status = ad['status']?.toString();
-              final car = ad['car'] is Map ? ad['car'] as Map : null;
-              final carTitle =
-                  car != null
-                      ? '${car['make'] ?? ''} ${car['model'] ?? ''}'.trim()
-                      : 'سيارة غير محددة';
-              final images = car != null ? car['images'] : null;
-              final imageUrl =
-                  images is List && images.isNotEmpty
-                      ? images.first.toString()
-                      : null;
-
-              final canMarkSold = status == 'active' || status == 'approved';
-
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                  contentPadding: const EdgeInsets.all(14),
-                  leading:
-                      imageUrl != null
-                          ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: CachedNetworkImage(
-                              imageUrl: imageUrl,
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              memCacheWidth: 120,
-                              placeholder:
-                                  (_, __) => Container(
-                                    width: 60,
-                                    height: 60,
-                                    color: const Color(0xFFF0F0F0),
-                                  ),
-                              errorWidget:
-                                  (_, __, ___) => const Icon(
-                                    Icons.directions_car,
-                                    size: 36,
-                                  ),
-                            ),
-                          )
-                          : const CircleAvatar(
-                            radius: 28,
-                            child: Icon(Icons.directions_car, size: 26),
-                          ),
-                  title: Text(
-                    carTitle.isEmpty ? 'سيارة غير محددة' : carTitle,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Row(
-                      children: [
-                        Expanded(child: Text('السعر: $price ل.س')),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _statusColor(status).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            _translateStatus(status),
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: _statusColor(status),
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  trailing: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _editAd(ad);
-                      } else if (value == 'publish') {
-                        _publishAd(ad);
-                      } else if (value == 'sold') {
-                        _markAsSold(ad);
-                      } else if (value == 'delete') {
-                        _deleteAd(ad);
-                      }
-                    },
-                    itemBuilder:
-                        (_) => [
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Text('تعديل السعر'),
-                          ),
-                          if (status != 'active' && status != 'approved')
-                            const PopupMenuItem(
-                              value: 'publish',
-                              child: Text('نشر الإعلان'),
-                            ),
-                          if (status == 'active' || status == 'approved')
-                            const PopupMenuItem(
-                              value: 'sold',
-                              child: Text(
-                                'تم البيع ✅',
-                                style: TextStyle(
-                                  color: AppColors.success,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Text('حذف الإعلان'),
-                          ),
-                        ],
-                  ),
-                    ),
-                    // زر "تم البيع" ظاهر ومباشر بدل الاكتفاء بقائمة الخيارات
-                    // فقط، ليكون واضحاً وسهل الوصول لصاحب الإعلان
-                    if (canMarkSold)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _markAsSold(ad),
-                            icon: const Icon(
-                              Icons.check_circle_outline,
-                              size: 18,
-                              color: AppColors.success,
-                            ),
-                            label: const Text(
-                              'تم البيع',
-                              style: TextStyle(
-                                color: AppColors.success,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              side: const BorderSide(color: AppColors.success),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
+          translateStatus: _translateStatus,
+          statusColor: _statusColor,
+          onEdit: _editAd,
+          onPublish: _publishAd,
+          onMarkSold: _markAsSold,
+          onDelete: _deleteAd,
         );
       },
     );

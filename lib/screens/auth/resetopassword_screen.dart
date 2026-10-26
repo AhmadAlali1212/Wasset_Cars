@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:mators_car/ulits/colors.dart';
-import 'package:mators_car/services/auth_serivces.dart';
+import 'package:mators_car/services/controllers/auth_service.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
@@ -27,9 +28,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   Future<void> _resetPassword() async {
     if (_formKey.currentState!.validate()) {
       if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('كلمة المرور غير متطابقة')),
-        );
+        AppSnackbar.showWarning(context, title: 'كلمة المرور غير متطابقة');
         return;
       }
 
@@ -52,9 +51,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           return;
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تغيير كلمة المرور بنجاح')),
-        );
+        AppSnackbar.showSuccess(context, title: 'تم تغيير كلمة المرور بنجاح');
 
         Navigator.popUntil(context, (route) => route.isFirst);
       } on DioException catch (e) {
@@ -65,9 +62,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ?.toString()) ??
             'حدث خطأ أثناء إعادة تعيين كلمة المرور';
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(message)));
+          AppSnackbar.showError(context, title: 'تعذّر تغيير كلمة المرور', subtitle: message);
         }
       } finally {
         if (mounted) {

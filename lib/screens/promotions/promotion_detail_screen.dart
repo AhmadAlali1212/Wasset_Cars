@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:mators_car/models/promotion_model.dart';
-import 'package:mators_car/services/promotion_service.dart';
+import 'package:mators_car/data/models/promotion_model.dart';
+import 'package:mators_car/services/controllers/promotion_service.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 
 class PromotionDetailScreen extends StatefulWidget {
   final Promotion promotion;
@@ -126,9 +127,7 @@ class _PromotionDetailScreenState extends State<PromotionDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isDeleting = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('فشل حذف العرض: $e')));
+      AppSnackbar.showError(context, title: 'تعذّر حذف العرض', debugMessage: e);
     }
   }
 

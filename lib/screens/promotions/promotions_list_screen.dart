@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mators_car/models/promotion_model.dart';
-import 'package:mators_car/services/promotion_service.dart';
+import 'package:mators_car/data/models/promotion_model.dart';
+import 'package:mators_car/services/controllers/promotion_service.dart';
 import 'package:mators_car/services/local_promotions_cache.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'add_promotion_screen.dart';
@@ -81,13 +81,10 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
               if (created == true) {
                 _refresh();
                 if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'تم إنشاء العرض الترويجي بنجاح، وهو الآن قيد المراجعة ⏳',
-                    ),
-                    backgroundColor: Colors.green,
-                  ),
+                AppSnackbar.showSuccess(
+                  context,
+                  title: 'تم إنشاء العرض الترويجي بنجاح',
+                  subtitle: 'وهو الآن قيد المراجعة',
                 );
               }
             },
