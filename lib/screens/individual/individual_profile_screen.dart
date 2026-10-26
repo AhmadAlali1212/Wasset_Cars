@@ -5,7 +5,7 @@ import 'package:mators_car/screens/individual/individual_inventory_screen.dart';
 import 'package:mators_car/screens/individual/individual_wallet_screen.dart';
 import 'package:mators_car/screens/settings/edit_profile_screen.dart';
 import 'package:mators_car/screens/settings/settings_screen.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
 import 'package:mators_car/ulits/localization/app_localizations.dart';

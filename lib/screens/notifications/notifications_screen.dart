@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:mators_car/data/models/notification_model.dart';
 import 'package:mators_car/services/api_exception.dart';
+import 'package:mators_car/services/controllers/auction_service.dart';
 import 'package:mators_car/services/controllers/notification_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
@@ -10,7 +11,6 @@ import 'package:mators_car/screens/ratings/pending_ratings_screen.dart';
 import 'package:mators_car/screens/messages/chat_thread_screen.dart';
 import 'package:mators_car/screens/disputes/my_disputes_screen.dart';
 import 'package:mators_car/screens/auction/auction_detail_screen.dart';
-import 'package:mators_car/services/controllers/auction_service.dart';
 import 'package:mators_car/data/models/auction_model.dart';
 import 'package:mators_car/widgets/notifications/notifications_screen_widgets.dart';
 
@@ -90,9 +90,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       );
       if (!mounted) return;
       final existingIds = _items.map((n) => n.id).toSet();
-      final freshOnes = page.items
-          .where((n) => !existingIds.contains(n.id))
-          .toList();
+      final freshOnes =
+          page.items.where((n) => !existingIds.contains(n.id)).toList();
       if (freshOnes.isEmpty) return;
       setState(() {
         _items.insertAll(0, freshOnes);
@@ -228,13 +227,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         await _openAuction(notification.data['auction_id']);
         return;
       case 'new_message':
-        final senderId = int.tryParse('${notification.data['sender_id'] ?? ''}');
+        final senderId = int.tryParse(
+          '${notification.data['sender_id'] ?? ''}',
+        );
         if (senderId == null) return;
         if (!mounted) return;
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ChatThreadScreen(partnerId: senderId, partnerName: 'محادثة'),
+            builder:
+                (_) => ChatThreadScreen(
+                  partnerId: senderId,
+                  partnerName: 'محادثة',
+                ),
           ),
         );
         return;
@@ -265,15 +270,20 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       Navigator.pop(context); // إغلاق مؤشر التحميل
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => AuctionDetailScreen(auction: Auction.fromJson(json))),
+        MaterialPageRoute(
+          builder: (_) => AuctionDetailScreen(auction: Auction.fromJson(json)),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
-      AppSnackbar.showError(context, title: 'تعذّر فتح المزاد', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر فتح المزاد',
+        debugMessage: e,
+      );
     }
   }
-
 
   void _showDetails(AppNotification notification) {
     final visual = _visualFor(notification);
@@ -345,12 +355,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       Navigator.pop(context);
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const PendingRatingsScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const PendingRatingsScreen(),
+                        ),
                       );
                     },
-                    icon: const Icon(Icons.star_border, color: Colors.white, size: 18),
-                    label: const Text('قيّم الآن', style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                    icon: const Icon(
+                      Icons.star_border,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      'قيّم الآن',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -366,9 +387,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       Navigator.pop(context);
                       _openDeepLink(notification);
                     },
-                    icon: const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
-                    label: Text(_deepLinkLabel(notification.rawType)!, style: const TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                    icon: const Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _deepLinkLabel(notification.rawType)!,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -464,14 +494,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildTabsBar() => NotificationTabsBar(
-        tabs: _tabs,
-        selectedCategory: _selectedCategory,
-        onSelect: (category) {
-          setState(() => _selectedCategory = category);
-          _autoFillAttempts = 0;
-          _maybeAutoFill();
-        },
-      );
+    tabs: _tabs,
+    selectedCategory: _selectedCategory,
+    onSelect: (category) {
+      setState(() => _selectedCategory = category);
+      _autoFillAttempts = 0;
+      _maybeAutoFill();
+    },
+  );
 
   Widget _buildBody(List<AppNotification> visibleItems) {
     if (_isLoading) {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mators_car/services/controllers/company_service.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
-import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/widgets/company/edit_car_widgets.dart';
 
 class EditCarScreen extends StatefulWidget {

@@ -41,7 +41,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       _refresh();
     } catch (e) {
       if (!mounted) return;
-      AppSnackbar.showError(context, title: 'تعذّر إزالة السيارة', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إزالة السيارة',
+        debugMessage: e,
+      );
     }
   }
 
@@ -60,7 +64,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       final adJson = Map<String, dynamic>.from(saleAd)..['car'] = carJson;
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => AdDetailScreen(ad: Ad.fromJson(adJson))),
+        MaterialPageRoute(
+          builder: (_) => AdDetailScreen(ad: Ad.fromJson(adJson)),
+        ),
       );
       return;
     }
@@ -69,7 +75,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       final adJson = Map<String, dynamic>.from(rentalAd)..['car'] = carJson;
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => RentalAdDetailScreen(ad: Ad.fromJson(adJson))),
+        MaterialPageRoute(
+          builder: (_) => RentalAdDetailScreen(ad: Ad.fromJson(adJson)),
+        ),
       );
       return;
     }
@@ -102,8 +110,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 children: [
                   const SizedBox(height: 80),
                   Center(
-                    child: Text('تعذر جلب المفضلة\n${snapshot.error}',
-                        textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                    child: Text(
+                      'تعذر جلب المفضلة\n${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
                 ],
               );
@@ -136,9 +147,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 final model = car['model']?.toString() ?? '';
                 final year = car['year']?.toString() ?? '';
                 final images = car['images'];
-                final imageUrl = images is List && images.isNotEmpty
-                    ? images.first.toString()
-                    : null;
+                final imageUrl =
+                    images is List && images.isNotEmpty
+                        ? images.first.toString()
+                        : null;
 
                 return InkWell(
                   borderRadius: BorderRadius.circular(16),
@@ -153,26 +165,33 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: imageUrl != null
-                              ? CachedNetworkImage(
-                                  imageUrl: imageUrl,
-                                  width: 72,
-                                  height: 72,
-                                  fit: BoxFit.cover,
-                                  memCacheWidth: 144,
-                                )
-                              : Container(
-                                  width: 72,
-                                  height: 72,
-                                  color: const Color(0xFFF0F0F0),
-                                  child: const Icon(Icons.directions_car, color: Colors.grey),
-                                ),
+                          child:
+                              imageUrl != null
+                                  ? CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    width: 72,
+                                    height: 72,
+                                    fit: BoxFit.cover,
+                                    memCacheWidth: 144,
+                                  )
+                                  : Container(
+                                    width: 72,
+                                    height: 72,
+                                    color: const Color(0xFFF0F0F0),
+                                    child: const Icon(
+                                      Icons.directions_car,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             '$make $model $year',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                         IconButton(

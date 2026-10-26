@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/ulits/colors.dart';
 
-import 'package:mators_car/data/models/workshop_model.dart';
+import '../../data/models/workshop_model.dart';
 
 class WorkshopCard extends StatelessWidget {
   final Workshop workshop;
@@ -30,16 +30,20 @@ class WorkshopCard extends StatelessWidget {
             ),
           ],
         ),
-        child: SingleChildScrollView( // إضافة إمكانية التمرير
+        child: SingleChildScrollView(
+          // إضافة إمكانية التمرير
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min, // مهم لمنع التجاوز
             children: [
               // Workshop Images Slider
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: AspectRatio( // تحديد نسبة ثابتة للصور
-                  aspectRatio: 16/9,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+                child: AspectRatio(
+                  // تحديد نسبة ثابتة للصور
+                  aspectRatio: 16 / 9,
                   child: PageView.builder(
                     itemCount: workshop.images.length,
                     itemBuilder: (context, index) {
@@ -47,7 +51,9 @@ class WorkshopCard extends StatelessWidget {
                         imageUrl: workshop.images[index],
                         fit: BoxFit.cover,
                         memCacheWidth: 700,
-                        placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                        placeholder:
+                            (context, url) =>
+                                Container(color: Colors.grey.shade200),
                         errorWidget: (context, url, error) {
                           return Container(
                             color: Colors.grey[200],
@@ -80,9 +86,14 @@ class WorkshopCard extends StatelessWidget {
 
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 16, color: AppColors.textSecondary),
+                        Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: AppColors.textSecondary,
+                        ),
                         const SizedBox(width: 4),
-                        Expanded( // لمنع تجاوز النص
+                        Expanded(
+                          // لمنع تجاوز النص
                           child: Text(
                             workshop.location,
                             style: TextStyle(
@@ -115,16 +126,18 @@ class WorkshopCard extends StatelessWidget {
                         child: Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: workshop.services.map((service) {
-                            return Chip(
-                              label: Text(service),
-                              backgroundColor: AppColors.primary.withOpacity(0.1),
-                              labelStyle: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 12,
-                              ),
-                            );
-                          }).toList(),
+                          children:
+                              workshop.services.map((service) {
+                                return Chip(
+                                  label: Text(service),
+                                  backgroundColor: AppColors.primary
+                                      .withOpacity(0.1),
+                                  labelStyle: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 12,
+                                  ),
+                                );
+                              }).toList(),
                         ),
                       ),
                     ),

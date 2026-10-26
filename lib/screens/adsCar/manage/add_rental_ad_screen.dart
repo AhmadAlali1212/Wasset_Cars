@@ -3,6 +3,9 @@ import 'package:dio/dio.dart';
 import 'package:mators_car/screens/adsCar/manage/car_picker_sheet.dart';
 import 'package:mators_car/services/controllers/rental_ad_service.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 
 /// شاشة إنشاء إعلان تأجير جديد (تعمل لكل من حساب الفرد وحساب المعرض
 /// راجع قسم "6. إدارة إعلانات التأجير (Rental Ads)" في ملف Postman).
@@ -84,7 +87,10 @@ class _AddRentalAdScreenState extends State<AddRentalAdScreen> {
 
     final dailyPrice = double.tryParse(_dailyPriceController.text.trim()) ?? 0;
     if (dailyPrice <= 0) {
-      AppSnackbar.showWarning(context, title: 'أدخل سعراً يومياً صحيحاً أكبر من صفر');
+      AppSnackbar.showWarning(
+        context,
+        title: 'أدخل سعراً يومياً صحيحاً أكبر من صفر',
+      );
       return;
     }
     final monthlyPriceText = _monthlyPriceController.text.trim();
@@ -121,7 +127,9 @@ class _AddRentalAdScreenState extends State<AddRentalAdScreen> {
       if (!mounted) return;
       Navigator.pop(context, true);
     } on DioException catch (e) {
-      debugPrint('DioException in add_rental_ad_screen: ${e.response?.statusCode} ${e.response?.data}');
+      debugPrint(
+        'DioException in add_rental_ad_screen: ${e.response?.statusCode} ${e.response?.data}',
+      );
       if (!mounted) return;
       AppSnackbar.showError(
         context,
@@ -261,7 +269,7 @@ class _AddRentalAdScreenState extends State<AddRentalAdScreen> {
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                  foregroundColor: Colors.white,
                   backgroundColor: const Color(0xFF0F4C81),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

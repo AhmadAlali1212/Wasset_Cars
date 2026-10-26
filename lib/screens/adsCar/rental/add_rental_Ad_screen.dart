@@ -5,7 +5,7 @@ import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/rental/rental_ad_success_screen.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/rental/rental_ads/add_rental_ad_widgets.dart';
-import 'package:mators_car/data/models/car_model.dart';
+import '../../../data/models/car_model.dart';
 
 class AddRentalAdScreen extends StatefulWidget {
   const AddRentalAdScreen({super.key});

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:provider/provider.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/services/controllers/profile_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 
@@ -36,11 +36,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     final user =
         Provider.of<AuthService>(context, listen: false).currentUser ?? {};
-    _nameController = TextEditingController(text: (user['name'] ?? '').toString());
+    _nameController = TextEditingController(
+      text: (user['name'] ?? '').toString(),
+    );
     _phoneController = TextEditingController(
       text: (user['phone_number'] ?? '').toString(),
     );
-    final avatar = user['avatar'] ?? user['avatar_url'] ?? user['profile_image'];
+    final avatar =
+        user['avatar'] ?? user['avatar_url'] ?? user['profile_image'];
     _avatarUrl = avatar?.toString();
   }
 
@@ -75,10 +78,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // نحدّث بيانات المستخدم المخزّنة محلياً حتى تنعكس الصورة الجديدة
       // في بقية شاشات التطبيق بدون الحاجة لإعادة تسجيل الدخول.
       if (mounted) {
-        await Provider.of<AuthService>(
-          context,
-          listen: false,
-        ).getCurrentUser();
+        await Provider.of<AuthService>(context, listen: false).getCurrentUser();
       }
     } catch (e) {
       if (!mounted) return;
@@ -99,10 +99,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!mounted) return;
       setState(() => _avatarUrl = null);
       if (mounted) {
-        await Provider.of<AuthService>(
-          context,
-          listen: false,
-        ).getCurrentUser();
+        await Provider.of<AuthService>(context, listen: false).getCurrentUser();
       }
     } catch (e) {
       if (!mounted) return;
@@ -125,10 +122,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         phoneNumber: _phoneController.text,
       );
       if (!mounted) return;
-      await Provider.of<AuthService>(
-        context,
-        listen: false,
-      ).getCurrentUser();
+      await Provider.of<AuthService>(context, listen: false).getCurrentUser();
       if (!mounted) return;
       AppSnackbar.showSuccess(context, title: 'تم حفظ التعديلات بنجاح');
       Navigator.pop(context);
@@ -167,9 +161,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     radius: 50,
                     backgroundColor: AppColors.surfaceLight,
                     backgroundImage:
-                        _avatarUrl != null
-                            ? NetworkImage(_avatarUrl!)
-                            : null,
+                        _avatarUrl != null ? NetworkImage(_avatarUrl!) : null,
                     child:
                         _isUploadingAvatar
                             ? const CircularProgressIndicator()

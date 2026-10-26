@@ -217,7 +217,7 @@ class AdSuccessScreen extends StatelessWidget {
                             );
                           },
                           style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                            foregroundColor: Colors.white,
                             backgroundColor: AppColors.primary,
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(

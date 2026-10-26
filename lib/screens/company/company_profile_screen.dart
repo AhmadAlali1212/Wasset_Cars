@@ -6,7 +6,7 @@ import 'package:mators_car/screens/promotions/promotions_list_screen.dart';
 import 'package:mators_car/screens/promotions/subscription_screen.dart';
 import 'package:mators_car/screens/settings/edit_profile_screen.dart';
 import 'package:mators_car/screens/settings/settings_screen.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/services/controllers/subscription_service.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';

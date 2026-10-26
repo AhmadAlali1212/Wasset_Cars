@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/services/controllers/company_service.dart';
 import 'package:mators_car/ulits/colors.dart';
-import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/constant.dart';
 
 /// ورقة سفلية مشتركة لاختيار سيارة من سيارات المستخدم (فردي أو معرض)
 /// قبل إنشاء إعلان بيع أو تأجير جديد.
@@ -113,7 +113,10 @@ class _CarPickerSheetState extends State<CarPickerSheet> {
                         final make = car['make'] ?? '';
                         final model = car['model'] ?? '';
                         final year = car['year']?.toString() ?? '-';
-                        final status = (car['approval_status'] ?? car['status'])?.toString() ?? '';
+                        final status =
+                            (car['approval_status'] ?? car['status'])
+                                ?.toString() ??
+                            '';
                         final imageUrl = _primaryImage(
                           car['images'] ?? car['image'],
                         );
@@ -166,7 +169,9 @@ class _CarPickerSheetState extends State<CarPickerSheet> {
                               '$make $model'.trim().isEmpty
                                   ? 'سيارة غير محددة'
                                   : '$make $model',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             subtitle: Text('سنة $year • الحالة: $status'),
                             trailing: const Icon(Icons.chevron_left),

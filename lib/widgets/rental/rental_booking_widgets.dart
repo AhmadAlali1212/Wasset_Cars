@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mators_car/data/models/rental_booking_model.dart';
 import 'package:mators_car/screens/disputes/raise_dispute_screen.dart';
 import 'package:mators_car/ulits/colors.dart';
-import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/widgets/common/skeleton_loader.dart';
 
 class RentalBookingsContent extends StatelessWidget {

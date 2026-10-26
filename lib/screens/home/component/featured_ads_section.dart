@@ -4,7 +4,6 @@ import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/sellCars/ad_detail_screen.dart';
 import 'package:mators_car/ulits/colors.dart';
 
-
 class FeaturedAdsSection extends StatelessWidget {
   final List<Ad> ads;
 
@@ -53,11 +52,13 @@ class FeaturedAdsSection extends StatelessWidget {
               height: double.infinity,
               fit: BoxFit.cover,
               memCacheWidth: 500,
-              placeholder: (context, url) => Container(color: Colors.grey.shade200),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey.shade200,
-                child: const Icon(Icons.directions_car),
-              ),
+              placeholder:
+                  (context, url) => Container(color: Colors.grey.shade200),
+              errorWidget:
+                  (context, url, error) => Container(
+                    color: Colors.grey.shade200,
+                    child: const Icon(Icons.directions_car),
+                  ),
             ),
           ),
 
@@ -68,10 +69,7 @@ class FeaturedAdsSection extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.bottomCenter,
                 end: Alignment.topCenter,
-                colors: [
-                  Colors.black.withOpacity(0.7),
-                  Colors.transparent,
-                ],
+                colors: [Colors.black.withOpacity(0.7), Colors.transparent],
               ),
             ),
           ),
@@ -97,7 +95,9 @@ class FeaturedAdsSection extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 4, horizontal: 8),
+                        vertical: 4,
+                        horizontal: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
                         borderRadius: BorderRadius.circular(20),
@@ -113,11 +113,14 @@ class FeaturedAdsSection extends StatelessWidget {
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 4, horizontal: 8),
+                        vertical: 4,
+                        horizontal: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: ad.status == 'pending'
-                            ? AppColors.warning
-                            : AppColors.success,
+                        color:
+                            ad.status == 'pending'
+                                ? AppColors.warning
+                                : AppColors.success,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
@@ -140,7 +143,10 @@ class FeaturedAdsSection extends StatelessWidget {
               top: 16,
               right: 16,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 4,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.secondary,
                   borderRadius: BorderRadius.circular(20),

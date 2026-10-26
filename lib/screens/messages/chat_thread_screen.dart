@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/services/controllers/message_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
@@ -42,7 +42,10 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
     final authService = Provider.of<AuthService>(context, listen: false);
     _myUserId = int.tryParse('${authService.currentUser?['id'] ?? ''}');
     _loadThread();
-    _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) => _loadThread(silent: true));
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 6),
+      (_) => _loadThread(silent: true),
+    );
   }
 
   @override
@@ -57,7 +60,8 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
     if (!silent) setState(() => _isLoading = true);
     try {
       // السيرفر يرجع الأحدث أولاً؛ نعكس الترتيب لعرضه من الأقدم للأحدث بالأسفل
-      final messages = (await _messageService.getThread(widget.partnerId)).reversed.toList();
+      final messages =
+          (await _messageService.getThread(widget.partnerId)).reversed.toList();
       if (!mounted) return;
       setState(() {
         _messages = messages;
@@ -67,7 +71,11 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
       if (!mounted) return;
       setState(() => _isLoading = false);
       if (!silent) {
-        AppSnackbar.showError(context, title: 'تعذّر تحميل الرسائل', debugMessage: e);
+        AppSnackbar.showError(
+          context,
+          title: 'تعذّر تحميل الرسائل',
+          debugMessage: e,
+        );
       }
     }
   }
@@ -79,7 +87,10 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
     setState(() => _isSending = true);
     _inputController.clear();
     try {
-      await _messageService.sendMessage(receiverId: widget.partnerId, content: text);
+      await _messageService.sendMessage(
+        receiverId: widget.partnerId,
+        content: text,
+      );
       await _loadThread(silent: true);
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
@@ -90,7 +101,11 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      AppSnackbar.showError(context, title: 'تعذّر إرسال الرسالة', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إرسال الرسالة',
+        debugMessage: e,
+      );
       _inputController.text = text;
     } finally {
       if (mounted) setState(() => _isSending = false);
@@ -106,7 +121,10 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
-        title: Text(widget.partnerName, style: const TextStyle(color: Colors.black, fontSize: 16)),
+        title: Text(
+          widget.partnerName,
+          style: const TextStyle(color: Colors.black, fontSize: 16),
+        ),
         actions: [
           // ⬅️ جديد: إبلاغ/حظر مباشرة من نفس المحادثة
           PopupMenuButton<String>(
@@ -120,31 +138,40 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                 );
               }
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(value: 'report', child: Text('إبلاغ / حظر')),
-            ],
+            itemBuilder:
+                (_) => const [
+                  PopupMenuItem(value: 'report', child: Text('إبلاغ / حظر')),
+                ],
           ),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: _isLoading
-                ? const SkeletonList(itemCount: 6)
-                : _messages.isEmpty
+            child:
+                _isLoading
+                    ? const SkeletonList(itemCount: 6)
+                    : _messages.isEmpty
                     ? const Center(
-                        child: Text('لا توجد رسائل بعد، ابدأ المحادثة الآن', style: TextStyle(color: Colors.grey)),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final msg = _messages[index];
-                          final isMine = (msg['sender_id'] as num?)?.toInt() == _myUserId;
-                          return _MessageBubble(content: msg['content']?.toString() ?? '', isMine: isMine);
-                        },
+                      child: Text(
+                        'لا توجد رسائل بعد، ابدأ المحادثة الآن',
+                        style: TextStyle(color: Colors.grey),
                       ),
+                    )
+                    : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _messages.length,
+                      itemBuilder: (context, index) {
+                        final msg = _messages[index];
+                        final isMine =
+                            (msg['sender_id'] as num?)?.toInt() == _myUserId;
+                        return _MessageBubble(
+                          content: msg['content']?.toString() ?? '',
+                          isMine: isMine,
+                        );
+                      },
+                    ),
           ),
           SafeArea(
             top: false,
@@ -166,7 +193,10 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                         hintText: 'اكتب رسالتك...',
                         filled: true,
                         fillColor: const Color(0xFFF4F6F9),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
@@ -178,13 +208,14 @@ class _ChatThreadScreenState extends State<ChatThreadScreen> {
                   const SizedBox(width: 8),
                   IconButton(
                     onPressed: _isSending ? null : _sendMessage,
-                    icon: _isSending
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send, color: AppColors.primary),
+                    icon:
+                        _isSending
+                            ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Icon(Icons.send, color: AppColors.primary),
                   ),
                 ],
               ),
@@ -209,7 +240,9 @@ class _MessageBubble extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.72,
+        ),
         decoration: BoxDecoration(
           color: isMine ? AppColors.primary : Colors.white,
           borderRadius: BorderRadius.only(
@@ -222,7 +255,10 @@ class _MessageBubble extends StatelessWidget {
         child: Text(
           content,
           textAlign: TextAlign.right,
-          style: TextStyle(color: isMine ? Colors.white : Colors.black87, fontSize: 14),
+          style: TextStyle(
+            color: isMine ? Colors.white : Colors.black87,
+            fontSize: 14,
+          ),
         ),
       ),
     );

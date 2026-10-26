@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mators_car/screens/auth/login_screen.dart';
 import 'package:mators_car/screens/auth/verification_screen.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';

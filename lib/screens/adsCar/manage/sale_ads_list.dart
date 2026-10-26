@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/screens/adsCar/manage/add_sale_ad_screen.dart';
 import 'package:mators_car/services/controllers/ads_service.dart';
 import 'package:mators_car/services/controllers/user_search_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/widgets/common/skeleton_loader.dart';
+import 'package:mators_car/ulits/adaptive_colors.dart';
 import 'package:mators_car/ulits/localization/app_localizations.dart';
-import 'package:mators_car/widgets/manage-adsCar/sale_ads_list_widgets.dart';
 
 /// عنصر واجهة قابل لإعادة الاستخدام يعرض إعلانات البيع الخاصة بالمستخدم
 /// (فردي أو معرض) مع إمكانية: نشر الإعلان، تعديل السعر، حذف الإعلان.
@@ -188,9 +189,9 @@ class _SaleAdsListState extends State<SaleAdsList> {
                   children: [
                     TextField(
                       controller: controller,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: context.tr('search_buyer_hint'),
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                       onChanged: (value) {
                         if (value.trim().length >= 2) runSearch(value);
@@ -288,10 +289,45 @@ class _SaleAdsListState extends State<SaleAdsList> {
     return ads.where((ad) => ad['status']?.toString() != 'expired').toList();
   }
 
-  Widget _buildStatusFilterChips() => SaleAdsStatusFilterChips(
-        selectedStatus: _statusFilter,
-        onSelect: (key) => setState(() => _statusFilter = key),
-      );
+  Widget _buildStatusFilterChips() {
+    final filters = const [
+      {'key': 'active', 'label': 'إعلانات نشطة'},
+      {'key': 'expired', 'label': 'إعلانات منتهية'},
+      {'key': 'all', 'label': 'الكل'},
+    ];
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        itemCount: filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final filter = filters[index];
+          final selected = _statusFilter == filter['key'];
+          return ChoiceChip(
+            label: Text(filter['label']!),
+            selected: selected,
+            onSelected: (_) => setState(() => _statusFilter = filter['key']!),
+            showCheckmark: false,
+            selectedColor: AppColors.primary,
+            backgroundColor: context.adaptiveCardBg,
+            labelStyle: TextStyle(
+              color: selected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: selected ? AppColors.primary : Colors.grey.shade300,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -323,22 +359,213 @@ class _SaleAdsListState extends State<SaleAdsList> {
         final allAds = snapshot.data ?? [];
         final ads = _applyStatusFilter(allAds);
         if (allAds.isEmpty) {
-          return SaleAdsEmptyState(onRefresh: _refresh);
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 100),
+                Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.campaign_outlined,
+                        size: 70,
+                        color: Colors.grey,
+                      ),
+                      SizedBox(height: 14),
+                      Text('لا توجد إعلانات بيع بعد'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
         }
 
         if (ads.isEmpty) {
-          return SaleAdsFilteredEmptyState(onRefresh: _refresh);
+          return RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 100),
+                Center(child: Text('لا توجد إعلانات في هذا القسم')),
+              ],
+            ),
+          );
         }
 
-        return SaleAdsListView(
-          ads: ads,
+        return RefreshIndicator(
           onRefresh: _refresh,
-          translateStatus: _translateStatus,
-          statusColor: _statusColor,
-          onEdit: _editAd,
-          onPublish: _publishAd,
-          onMarkSold: _markAsSold,
-          onDelete: _deleteAd,
+          child: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: ads.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final ad = ads[index];
+              final price = ad['price']?.toString() ?? '-';
+              final status = ad['status']?.toString();
+              final car = ad['car'] is Map ? ad['car'] as Map : null;
+              final carTitle =
+                  car != null
+                      ? '${car['make'] ?? ''} ${car['model'] ?? ''}'.trim()
+                      : 'سيارة غير محددة';
+              final images = car != null ? car['images'] : null;
+              final imageUrl =
+                  images is List && images.isNotEmpty
+                      ? images.first.toString()
+                      : null;
+
+              final canMarkSold = status == 'active' || status == 'approved';
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: context.adaptiveCardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      contentPadding: const EdgeInsets.all(14),
+                      leading:
+                          imageUrl != null
+                              ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: CachedNetworkImage(
+                                  imageUrl: imageUrl,
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: 120,
+                                  placeholder:
+                                      (_, __) => Container(
+                                        width: 60,
+                                        height: 60,
+                                        color: const Color(0xFFF0F0F0),
+                                      ),
+                                  errorWidget:
+                                      (_, __, ___) => const Icon(
+                                        Icons.directions_car,
+                                        size: 36,
+                                      ),
+                                ),
+                              )
+                              : const CircleAvatar(
+                                radius: 28,
+                                child: Icon(Icons.directions_car, size: 26),
+                              ),
+                      title: Text(
+                        carTitle.isEmpty ? 'سيارة غير محددة' : carTitle,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Row(
+                          children: [
+                            Expanded(child: Text('السعر: $price ل.س')),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _statusColor(status).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _translateStatus(status),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _statusColor(status),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            _editAd(ad);
+                          } else if (value == 'publish') {
+                            _publishAd(ad);
+                          } else if (value == 'sold') {
+                            _markAsSold(ad);
+                          } else if (value == 'delete') {
+                            _deleteAd(ad);
+                          }
+                        },
+                        itemBuilder:
+                            (_) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Text('تعديل السعر'),
+                              ),
+                              if (status != 'active' && status != 'approved')
+                                const PopupMenuItem(
+                                  value: 'publish',
+                                  child: Text('نشر الإعلان'),
+                                ),
+                              if (status == 'active' || status == 'approved')
+                                const PopupMenuItem(
+                                  value: 'sold',
+                                  child: Text(
+                                    'تم البيع ✅',
+                                    style: TextStyle(
+                                      color: AppColors.success,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Text('حذف الإعلان'),
+                              ),
+                            ],
+                      ),
+                    ),
+                    // زر "تم البيع" ظاهر ومباشر بدل الاكتفاء بقائمة الخيارات
+                    // فقط، ليكون واضحاً وسهل الوصول لصاحب الإعلان
+                    if (canMarkSold)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _markAsSold(ad),
+                            icon: const Icon(
+                              Icons.check_circle_outline,
+                              size: 18,
+                              color: AppColors.success,
+                            ),
+                            label: const Text(
+                              'تم البيع',
+                              style: TextStyle(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              side: const BorderSide(color: AppColors.success),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );

@@ -92,7 +92,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         return;
       }
       setState(() => _actionError = 'تعذّر إتمام الاشتراك');
-      AppSnackbar.showError(context, title: 'تعذّر إتمام الاشتراك', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إتمام الاشتراك',
+        debugMessage: e,
+      );
     } finally {
       if (mounted) setState(() => _isActing = false);
     }
@@ -152,7 +156,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _actionError = 'تعذّر إلغاء الاشتراك');
-      AppSnackbar.showError(context, title: 'تعذّر إلغاء الاشتراك', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إلغاء الاشتراك',
+        debugMessage: e,
+      );
     } finally {
       if (mounted) setState(() => _isActing = false);
     }
@@ -332,7 +340,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           : ElevatedButton(
                             onPressed: _isActing ? null : _subscribe,
                             style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                              foregroundColor: Colors.white,
                               backgroundColor: AppColors.primary,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(

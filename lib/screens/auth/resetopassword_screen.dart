@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:mators_car/ulits/colors.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
@@ -62,7 +62,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 ?.toString()) ??
             'حدث خطأ أثناء إعادة تعيين كلمة المرور';
         if (mounted) {
-          AppSnackbar.showError(context, title: 'تعذّر تغيير كلمة المرور', subtitle: message);
+          AppSnackbar.showError(
+            context,
+            title: 'تعذّر تغيير كلمة المرور',
+            subtitle: message,
+          );
         }
       } finally {
         if (mounted) {

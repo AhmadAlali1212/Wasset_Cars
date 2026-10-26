@@ -58,7 +58,10 @@ class _PromotionDetailScreenState extends State<PromotionDetailScreen> {
     final picked = await showDatePicker(
       context: context,
       initialDate: isStart ? (_startDate ?? now) : (_endDate ?? now),
-      firstDate: isStart ? now.subtract(const Duration(days: 365)) : (_startDate ?? now),
+      firstDate:
+          isStart
+              ? now.subtract(const Duration(days: 365))
+              : (_startDate ?? now),
       lastDate: now.add(const Duration(days: 365)),
     );
     if (picked == null) return;
@@ -307,7 +310,7 @@ class _PromotionDetailScreenState extends State<PromotionDetailScreen> {
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _save,
                 style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                  foregroundColor: Colors.white,
                   backgroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(

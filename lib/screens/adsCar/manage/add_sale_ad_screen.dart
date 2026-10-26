@@ -109,9 +109,15 @@ class _AddSaleAdScreenState extends State<AddSaleAdScreen> {
       if (!mounted) return;
       Navigator.pop(context, true);
     } on DioException catch (e) {
-      debugPrint('DioException in add_sale_ad_screen: ${e.response?.statusCode} ${e.response?.data}');
+      debugPrint(
+        'DioException in add_sale_ad_screen: ${e.response?.statusCode} ${e.response?.data}',
+      );
       if (!mounted) return;
-      AppSnackbar.showError(context, title: 'تعذّر حفظ إعلان البيع', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر حفظ إعلان البيع',
+        debugMessage: e,
+      );
     } catch (e) {
       if (!mounted) return;
       AppSnackbar.showError(context, title: 'فشلت العملية', debugMessage: e);
@@ -204,7 +210,7 @@ class _AddSaleAdScreenState extends State<AddSaleAdScreen> {
               ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                  foregroundColor: Colors.white,
                   backgroundColor: const Color(0xFF0F4C81),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

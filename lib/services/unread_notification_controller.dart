@@ -28,7 +28,10 @@ class UnreadNotificationController extends ChangeNotifier {
     _listenerCount++;
     if (_pollTimer == null) {
       refresh();
-      _pollTimer = Timer.periodic(const Duration(seconds: 30), (_) => refresh());
+      _pollTimer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) => refresh(),
+      );
     }
   }
 

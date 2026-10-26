@@ -3,13 +3,12 @@ import 'package:mators_car/data/models/workshop_model.dart';
 import 'package:mators_car/widgets/section_header.dart';
 import 'package:mators_car/widgets/workshop/workshop_card.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
-import '../../data/mock_data.dart';
 import 'workshop_detail_screen.dart';
 
 class WorkshopsScreen extends StatelessWidget {
-  WorkshopsScreen({super.key});
+  WorkshopsScreen({super.key, required this.workshops});
 
-  final List<Workshop> workshops = MockData.workshops;
+  final List<Workshop> workshops;
 
   @override
   Widget build(BuildContext context) {

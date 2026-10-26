@@ -4,7 +4,7 @@ import 'package:mators_car/data/models/auction_model.dart';
 import 'package:mators_car/services/controllers/auction_service.dart';
 import 'package:mators_car/screens/auth/storeg/auth_storage.dart';
 import 'package:mators_car/ulits/colors.dart';
-import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
 import 'package:mators_car/ulits/localization/app_localizations.dart';
 import 'auction_detail_screen.dart';

@@ -122,16 +122,26 @@ class AuthService with ChangeNotifier {
       // نُلغي تسجيل رمز جهاز FCM قبل إبطال جلسة السيرفر (بينما التوكن
       // لا يزال صالحاً لطلب DELETE /device-tokens المصادَق عليه)، حتى لا
       // يستمر هذا الجهاز باستقبال إشعارات الحساب بعد تسجيل الخروج.
-      await PushNotificationService.instance.unregisterFromBackend();
-      await _dio.post('/logout', options: await _authOptions());
+      try {
+        await PushNotificationService.instance.unregisterFromBackend();
+      } catch (e) {
+        debugPrint('Logout notification cleanup failed: $e');
+      }
+
+      try {
+        await _dio.post('/logout', options: await _authOptions());
+      } on DioException catch (e) {
+        debugPrint(
+          'Logout API failed (${e.response?.statusCode}): ${e.response?.data}',
+        );
+      }
+    } finally {
+      // تسجيل الخروج المحلي يجب أن ينجح حتى لو كان endpoint الخادم متوقفاً.
       await AuthStorage.clearToken();
       await AuthStorage.clearUser();
       _isLoggedIn = false;
       _currentUser = null;
       notifyListeners();
-    } catch (e) {
-      debugPrint('Logout Error: $e');
-      rethrow;
     }
   }
 

@@ -5,7 +5,7 @@ import 'package:mators_car/services/controllers/rental_booking_service.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/common/skeleton_loader.dart';
-import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/screens/disputes/raise_dispute_screen.dart';
 
 /// شاشة "الطلبات الواردة" لمالك إعلانات التأجير — تسدّ الفجوة التي كانت
@@ -46,7 +46,10 @@ class _IncomingRentalBookingsScreenState
     await _bookingsFuture;
   }
 
-  Future<void> _runAction(Future<void> Function() action, String successMessage) async {
+  Future<void> _runAction(
+    Future<void> Function() action,
+    String successMessage,
+  ) async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
@@ -56,7 +59,11 @@ class _IncomingRentalBookingsScreenState
       _refresh();
     } catch (e) {
       if (!mounted) return;
-      AppSnackbar.showError(context, title: 'تعذّر تنفيذ العملية', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر تنفيذ العملية',
+        debugMessage: e,
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -71,7 +78,10 @@ class _IncomingRentalBookingsScreenState
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text('الطلبات الواردة', style: TextStyle(color: Colors.black)),
+        title: const Text(
+          'الطلبات الواردة',
+          style: TextStyle(color: Colors.black),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
@@ -119,22 +129,26 @@ class _IncomingRentalBookingsScreenState
                 return _IncomingBookingCard(
                   booking: b,
                   busy: _busy,
-                  onApprove: () => _runAction(
-                    () => _bookingService.approveBooking(b.id),
-                    'تمت الموافقة على الحجز',
-                  ),
-                  onReject: () => _runAction(
-                    () => _bookingService.rejectBooking(b.id),
-                    'تم رفض الحجز',
-                  ),
-                  onMarkDelivered: () => _runAction(
-                    () => _bookingService.markDelivered(b.id),
-                    'تم تأكيد التسليم',
-                  ),
-                  onMarkReturned: () => _runAction(
-                    () => _bookingService.markReturned(b.id),
-                    'تم تأكيد الإرجاع',
-                  ),
+                  onApprove:
+                      () => _runAction(
+                        () => _bookingService.approveBooking(b.id),
+                        'تمت الموافقة على الحجز',
+                      ),
+                  onReject:
+                      () => _runAction(
+                        () => _bookingService.rejectBooking(b.id),
+                        'تم رفض الحجز',
+                      ),
+                  onMarkDelivered:
+                      () => _runAction(
+                        () => _bookingService.markDelivered(b.id),
+                        'تم تأكيد التسليم',
+                      ),
+                  onMarkReturned:
+                      () => _runAction(
+                        () => _bookingService.markReturned(b.id),
+                        'تم تأكيد الإرجاع',
+                      ),
                 );
               },
             );
@@ -211,7 +225,10 @@ class _IncomingBookingCard extends StatelessWidget {
                           width: 60,
                           height: 60,
                           color: const Color(0xFFF0F0F0),
-                          child: const Icon(Icons.directions_car, color: Colors.grey),
+                          child: const Icon(
+                            Icons.directions_car,
+                            color: Colors.grey,
+                          ),
                         ),
               ),
               const SizedBox(width: 12),
@@ -219,23 +236,38 @@ class _IncomingBookingCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       booking.renterName?.isNotEmpty == true
                           ? 'المستأجر: ${booking.renterName}'
                           : 'المستأجر: #${booking.renterId ?? '-'}',
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 12,
+                      ),
                     ),
                     if ((booking.renterPhone ?? '').isNotEmpty)
                       Text(
                         booking.renterPhone!,
-                        style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 11,
+                        ),
                       ),
                     const SizedBox(height: 4),
                     Text(
                       '${_formatDate(booking.startDate)} → ${_formatDate(booking.endDate)}',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -248,7 +280,10 @@ class _IncomingBookingCard extends StatelessWidget {
                 ),
                 child: Text(
                   booking.status,
-                  style: const TextStyle(fontSize: 10, color: AppColors.primary),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
             ],
@@ -260,7 +295,9 @@ class _IncomingBookingCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: busy ? null : onReject,
-                    style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                    ),
                     child: const Text('رفض'),
                   ),
                 ),
@@ -268,8 +305,13 @@ class _IncomingBookingCard extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: busy ? null : onApprove,
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                    child: const Text('موافقة', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                    ),
+                    child: const Text(
+                      'موافقة',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   ),
                 ),
               ],
@@ -279,26 +321,43 @@ class _IncomingBookingCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: busy || booking.deliveredAt != null ? null : onMarkDelivered,
+                    onPressed:
+                        busy || booking.deliveredAt != null
+                            ? null
+                            : onMarkDelivered,
                     icon: Icon(
-                      booking.deliveredAt != null ? Icons.check_circle : Icons.local_shipping_outlined,
+                      booking.deliveredAt != null
+                          ? Icons.check_circle
+                          : Icons.local_shipping_outlined,
                       size: 16,
                     ),
-                    label: Text(booking.deliveredAt != null ? 'تم التسليم' : 'تأكيد التسليم'),
+                    label: Text(
+                      booking.deliveredAt != null
+                          ? 'تم التسليم'
+                          : 'تأكيد التسليم',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed:
-                        busy || booking.deliveredAt == null || booking.returnedAt != null
+                        busy ||
+                                booking.deliveredAt == null ||
+                                booking.returnedAt != null
                             ? null
                             : onMarkReturned,
                     icon: Icon(
-                      booking.returnedAt != null ? Icons.check_circle : Icons.assignment_return_outlined,
+                      booking.returnedAt != null
+                          ? Icons.check_circle
+                          : Icons.assignment_return_outlined,
                       size: 16,
                     ),
-                    label: Text(booking.returnedAt != null ? 'تم الإرجاع' : 'تأكيد الإرجاع'),
+                    label: Text(
+                      booking.returnedAt != null
+                          ? 'تم الإرجاع'
+                          : 'تأكيد الإرجاع',
+                    ),
                   ),
                 ),
               ],
@@ -312,26 +371,37 @@ class _IncomingBookingCard extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => RaiseDisputeScreen(
-                        againstUserId: booking.renterId ?? 0,
-                        againstUserName: booking.renterName?.isNotEmpty == true
-                            ? booking.renterName!
-                            : 'المستأجر',
-                        transactionType: 'rental_booking',
-                        transactionId: booking.id,
-                        transactionTitle: title,
-                      ),
+                      builder:
+                          (_) => RaiseDisputeScreen(
+                            againstUserId: booking.renterId ?? 0,
+                            againstUserName:
+                                booking.renterName?.isNotEmpty == true
+                                    ? booking.renterName!
+                                    : 'المستأجر',
+                            transactionType: 'rental_booking',
+                            transactionId: booking.id,
+                            transactionTitle: title,
+                          ),
                     ),
                   );
                 },
-                icon: const Icon(Icons.report_problem_outlined, size: 16, color: Colors.orange),
-                label: const Text('لدي مشكلة', style: TextStyle(color: Colors.orange, fontSize: 12)),
+                icon: const Icon(
+                  Icons.report_problem_outlined,
+                  size: 16,
+                  color: Colors.orange,
+                ),
+                label: const Text(
+                  'لدي مشكلة',
+                  style: TextStyle(color: Colors.orange, fontSize: 12),
+                ),
                 style: TextButton.styleFrom(padding: EdgeInsets.zero),
               ),
             ),
           ] else
             Text(
-              booking.status == 'completed' ? 'اكتملت هذه الفترة' : 'لا يوجد إجراء متاح حالياً',
+              booking.status == 'completed'
+                  ? 'اكتملت هذه الفترة'
+                  : 'لا يوجد إجراء متاح حالياً',
               style: const TextStyle(color: Colors.grey, fontSize: 12),
             ),
         ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:mators_car/screens/auth/resetopassword_screen.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
@@ -48,7 +48,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 ?.toString()) ??
             'حدث خطأ أثناء إرسال رمز التحقق';
         if (mounted) {
-          AppSnackbar.showError(context, title: 'تعذّر إرسال رمز التحقق', subtitle: message);
+          AppSnackbar.showError(
+            context,
+            title: 'تعذّر إرسال رمز التحقق',
+            subtitle: message,
+          );
         }
       } finally {
         if (mounted) {

@@ -3,6 +3,9 @@ import 'package:mators_car/data/models/promotion_model.dart';
 import 'package:mators_car/services/controllers/promotion_service.dart';
 import 'package:mators_car/services/local_promotions_cache.dart';
 import 'package:mators_car/ulits/colors.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
+import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'add_promotion_screen.dart';
 import 'promotion_detail_screen.dart';
 
@@ -133,9 +136,7 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color:
-                            isSelected
-                                ? AppColors.primary
-                                : Colors.transparent,
+                            isSelected ? AppColors.primary : Colors.transparent,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color:
@@ -190,7 +191,8 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
                             )
                             .toList();
                   } else if (_filter == 'pending') {
-                    promos = promos.where((p) => p.status == 'pending').toList();
+                    promos =
+                        promos.where((p) => p.status == 'pending').toList();
                   } else if (_filter == 'expired') {
                     promos = promos.where((p) => p.isExpired).toList();
                   }

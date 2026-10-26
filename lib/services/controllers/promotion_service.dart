@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:mators_car/data/dataSource/remote/promotion_data.dart';
-import 'package:mators_car/data/models/promotion_model.dart';
-import 'package:mators_car/services/api_exception.dart';
+import 'package:mators_car/screens/auth/storeg/auth_storage.dart';
+import '../api/dio_client.dart';
+import '../../data/models/promotion_model.dart';
+import '../api_exception.dart';
 
 // خدمة العروض الترويجية — تطابق قسم "09 - العروض الترويجية" في Postman
 // ملاحظة مهمة: العرض الترويجي حسب الـ API ليس مرتبطاً بسيارة/إعلان محدد
@@ -9,11 +10,14 @@ import 'package:mators_car/services/api_exception.dart';
 // للشركة (عنوان + نسبة/قيمة خصم + تاريخ بداية ونهاية + الكمية المتاحة).
 // ملاحظة: إنشاء عرض ترويجي يتطلب اشتراكاً نشطاً (راجع وصف الطلب في Postman).
 class PromotionService {
-  final PromotionData _data = PromotionData();
+  final Dio _dio = DioClient.instance.dio;
 
   // قائمة العروض الترويجية النشطة ضمن تواريخها (عامة لكل المستخدمين)
   Future<List<Map<String, dynamic>>> getPromotions() async {
-    final response = await _data.getPromotions();
+    final response = await _dio.get(
+      '/promotions',
+      options: await _authOptions(),
+    );
     _handleResponseErrors(response, 'جلب العروض الترويجية');
     return _normalizeList(response.data);
   }
@@ -71,7 +75,10 @@ class PromotionService {
   }
 
   Future<Map<String, dynamic>> getPromotionDetails(int promotionId) async {
-    final response = await _data.getPromotionDetails(promotionId);
+    final response = await _dio.get(
+      '/promotions/$promotionId',
+      options: await _authOptions(),
+    );
     _handleResponseErrors(response, 'جلب تفاصيل العرض الترويجي');
     return _normalizeResponse(response.data);
   }
@@ -86,14 +93,23 @@ class PromotionService {
     required DateTime endDate,
     required int quantity,
   }) async {
-    final response = await _data.createPromotion(
-      title: title,
-      description: description,
-      type: type,
-      value: value,
-      startDate: startDate,
-      endDate: endDate,
-      quantity: quantity,
+    String formatDate(DateTime date) =>
+        '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+
+    final response = await _dio.post(
+      '/promotions',
+      data: {
+        'title': title,
+        'description': description,
+        'type': type,
+        'value': value,
+        'start_date': formatDate(startDate),
+        'end_date': formatDate(endDate),
+        'quantity': quantity,
+      },
+      options: await _authOptions(),
     );
     _handleResponseErrors(response, 'إنشاء العرض الترويجي');
     return _normalizeResponse(response.data);
@@ -109,23 +125,41 @@ class PromotionService {
     required DateTime endDate,
     required int quantity,
   }) async {
-    final response = await _data.updatePromotion(
-      promotionId: promotionId,
-      title: title,
-      description: description,
-      type: type,
-      value: value,
-      startDate: startDate,
-      endDate: endDate,
-      quantity: quantity,
+    String formatDate(DateTime date) =>
+        '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+
+    final response = await _dio.put(
+      '/promotions/$promotionId',
+      data: {
+        'title': title,
+        'description': description,
+        'type': type,
+        'value': value,
+        'start_date': formatDate(startDate),
+        'end_date': formatDate(endDate),
+        'quantity': quantity,
+      },
+      options: await _authOptions(),
     );
     _handleResponseErrors(response, 'تعديل العرض الترويجي');
     return _normalizeResponse(response.data);
   }
 
   Future<void> deletePromotion(int promotionId) async {
-    final response = await _data.deletePromotion(promotionId);
+    final response = await _dio.delete(
+      '/promotions/$promotionId',
+      options: await _authOptions(),
+    );
     _handleResponseErrors(response, 'حذف العرض الترويجي');
+  }
+
+  Future<Options> _authOptions() async {
+    final token = await AuthStorage.getToken();
+    return Options(
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+    );
   }
 
   List<Map<String, dynamic>> _normalizeList(dynamic data) {

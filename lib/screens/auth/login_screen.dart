@@ -3,13 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:mators_car/screens/auth/acconnt_screen.dart';
-import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/screens/auth/forget_screen.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
 
-import 'package:mators_car/services/controllers/auth_service.dart';
+import '../../services/controllers/auth_serivces.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -62,14 +61,18 @@ class _LoginScreenState extends State<LoginScreen>
         Navigator.pushReplacementNamed(context, '/main');
       } on DioException catch (e) {
         String errorMessage = 'حدث خطأ أثناء تسجيل الدخول';
-        if (e.response != null) {
-          if (e.response?.data['errors'] != null) {
-            errorMessage = e.response?.data['errors'].entries
-                .map((e) => '${e.value.join(', ')}')
+        final responseData = e.response?.data;
+        if (responseData is Map) {
+          final errors = responseData['errors'];
+          if (errors is Map && errors.isNotEmpty) {
+            errorMessage = errors.entries
+                .map((entry) => '${entry.key}: ${entry.value}')
                 .join('\n');
-          } else if (e.response?.data['message'] != null) {
-            errorMessage = e.response?.data['message'];
+          } else if (responseData['message'] is String) {
+            errorMessage = responseData['message'] as String;
           }
+        } else if (responseData is String && responseData.trim().isNotEmpty) {
+          errorMessage = responseData.trim();
         }
         if (!mounted) {
           return;

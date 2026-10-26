@@ -60,7 +60,8 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
 
   Future<void> _rate(Map<String, dynamic> transaction) async {
     final otherUserId = (transaction['other_user_id'] as num?)?.toInt();
-    final otherUserName = transaction['other_user_name']?.toString() ?? 'المستخدم الآخر';
+    final otherUserName =
+        transaction['other_user_name']?.toString() ?? 'المستخدم الآخر';
     if (otherUserId == null) return;
 
     int selectedStars = 5;
@@ -86,9 +87,13 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
                     children: List.generate(5, (i) {
                       final starIndex = i + 1;
                       return IconButton(
-                        onPressed: () => setDialogState(() => selectedStars = starIndex),
+                        onPressed:
+                            () =>
+                                setDialogState(() => selectedStars = starIndex),
                         icon: Icon(
-                          starIndex <= selectedStars ? Icons.star : Icons.star_border,
+                          starIndex <= selectedStars
+                              ? Icons.star
+                              : Icons.star_border,
                           color: Colors.amber,
                           size: 30,
                         ),
@@ -117,7 +122,10 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
                     foregroundColor: Colors.white,
                     backgroundColor: AppColors.primary,
                   ),
-                  child: const Text('إرسال', style: TextStyle(color: Colors.white)),
+                  child: const Text(
+                    'إرسال',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             );
@@ -133,7 +141,10 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
       await _ratingService.addRating(
         userId: otherUserId,
         rating: selectedStars,
-        comment: commentController.text.trim().isEmpty ? null : commentController.text.trim(),
+        comment:
+            commentController.text.trim().isEmpty
+                ? null
+                : commentController.text.trim(),
         type: transaction['type'] as String,
         transactionId: (transaction['transaction_id'] as num).toInt(),
       );
@@ -142,7 +153,11 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
       _refresh();
     } catch (e) {
       if (!mounted) return;
-      AppSnackbar.showError(context, title: 'تعذّر إرسال التقييم', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إرسال التقييم',
+        debugMessage: e,
+      );
     }
   }
 
@@ -155,7 +170,10 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text('تقييمات معلّقة', style: TextStyle(color: Colors.black)),
+        title: const Text(
+          'تقييمات معلّقة',
+          style: TextStyle(color: Colors.black),
+        ),
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
@@ -171,8 +189,11 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
                 children: [
                   const SizedBox(height: 80),
                   Center(
-                    child: Text('تعذر جلب التقييمات المعلّقة\n${snapshot.error}',
-                        textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                    child: Text(
+                      'تعذر جلب التقييمات المعلّقة\n${snapshot.error}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
                 ],
               );
@@ -228,12 +249,18 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
                           children: [
                             Text(
                               t['title']?.toString() ?? '',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '${_typeLabel(type)} — مع ${t['other_user_name'] ?? 'مستخدم'}',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -245,10 +272,15 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
                             onPressed: () => _rate(t),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primary,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
                               minimumSize: const Size(64, 34),
                             ),
-                            child: const Text('قيّم', style: TextStyle(color: Colors.white)),
+                            child: const Text(
+                              'قيّم',
+                              style: TextStyle(color: Colors.white),
+                            ),
                           ),
                           const SizedBox(height: 4),
                           // ⬅️ جديد: رفع نزاع مباشرة من نفس المعاملة، بدل
@@ -258,13 +290,20 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => RaiseDisputeScreen(
-                                    againstUserId: (t['other_user_id'] as num).toInt(),
-                                    againstUserName: t['other_user_name']?.toString() ?? 'المستخدم',
-                                    transactionType: type,
-                                    transactionId: (t['transaction_id'] as num).toInt(),
-                                    transactionTitle: t['title']?.toString() ?? '',
-                                  ),
+                                  builder:
+                                      (_) => RaiseDisputeScreen(
+                                        againstUserId:
+                                            (t['other_user_id'] as num).toInt(),
+                                        againstUserName:
+                                            t['other_user_name']?.toString() ??
+                                            'المستخدم',
+                                        transactionType: type,
+                                        transactionId:
+                                            (t['transaction_id'] as num)
+                                                .toInt(),
+                                        transactionTitle:
+                                            t['title']?.toString() ?? '',
+                                      ),
                                 ),
                               );
                             },
@@ -272,7 +311,10 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
                               minimumSize: const Size(64, 24),
                               padding: EdgeInsets.zero,
                             ),
-                            child: const Text('لدي مشكلة', style: TextStyle(color: Colors.red, fontSize: 11)),
+                            child: const Text(
+                              'لدي مشكلة',
+                              style: TextStyle(color: Colors.red, fontSize: 11),
+                            ),
                           ),
                         ],
                       ),

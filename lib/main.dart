@@ -9,22 +9,18 @@ import 'package:mators_car/screens/auth/login_screen.dart';
 import 'package:mators_car/screens/intro_screen.dart';
 import 'package:mators_car/screens/main_screen.dart';
 import 'package:mators_car/screens/notifications/notifications_screen.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
+import 'package:mators_car/services/controllers/push_notification_service.dart';
 import 'package:mators_car/services/my_service.dart';
 import 'package:mators_car/services/navigation_service.dart';
-import 'package:mators_car/services/controllers/push_notification_service.dart';
-import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/ulits/localization/app_localizations.dart';
 import 'package:mators_car/ulits/localization/changed_local.dart';
 import 'package:provider/provider.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // تهيئة Firebase — لازمة قبل أي استخدام لـ FirebaseMessaging (إشعارات
-  // push). ملف android/app/google-services.json يجب أن يكون موجوداً
-  // (راجع خطوات ربط FCM).
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
@@ -40,22 +36,15 @@ void main() async {
   final isLoggedIn = await authService.checkAuth();
 
   final myService = await MyService().init();
-
+  /*
+$downloadUrl = "https://github.com/getsentry/sentry-wizard/releases/download/v4.0.1/sentry-wizard-win-x64.exe"
+Invoke-WebRequest $downloadUrl -OutFile sentry-wizard.exe
+./sentry-wizard.exe -i flutter --saas --org ahmad-5f --project wassetak_cars */
   // لا ننتظر (await) هذه، حتى لا تؤخر إقلاع الواجهة — تعمل بالخلفية
   // وتسجّل رمز الجهاز تلقائياً لو كان المستخدم مسجلاً دخوله مسبقاً.
   unawaited(PushNotificationService.instance.init());
 
-  await SentryFlutter.init(
-    (options) {
-      options.dsn = 'https://54e9cd2dc8fd8bdfaf320f7283774458@o4512079094677504.ingest.us.sentry.io/4512079129280512';
-      // Set tracesSampleRate to 1.0 to capture 100% of transactions for tracing.
-      // We recommend adjusting this value in production.
-      options.tracesSampleRate = 1.0;
-      // The sampling rate for profiling is relative to tracesSampleRate
-      // Setting to 1.0 will profile 100% of sampled transactions:
-      options.profilesSampleRate = 1.0;
-    },
-    appRunner: () => runApp(SentryWidget(child: 
+  runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthService>.value(value: authService),
@@ -65,10 +54,7 @@ void main() async {
       ],
       child: MyApp(isLoggedIn: isLoggedIn),
     ),
-  )),
   );
-  // TODO: Remove this line after sending the first sample event to sentry.
-  await Sentry.captureException(Exception('This is a sample exception.'));
 }
 
 class MyApp extends StatelessWidget {
@@ -87,7 +73,6 @@ class MyApp extends StatelessWidget {
       // ⬅️ جديد: ChangedLocalProvider كان يحتفظ فعلياً بكل منطق الوضع
       // الليلي وثيمَي اللغتين (lightTheme/darkTheme/themeMode) ويحفظه
       // بـ SharedPreferences، لكن MaterialApp لم يكن يستخدمها إطلاقاً —
-      // الوضع الليلي كان بلا أي تأثير رغم وجود كل الكود اللازم له.
       theme: localeProvider.lightTheme,
       darkTheme: localeProvider.darkTheme,
       themeMode: localeProvider.themeMode,

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/data/models/promotion_model.dart';
 import 'package:mators_car/services/controllers/ads_service.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/services/controllers/promotion_service.dart';
 import 'package:mators_car/services/controllers/rental_ad_service.dart';
 import 'package:mators_car/widgets/app_home_style_header.dart';

@@ -1,8 +1,23 @@
 import 'package:dio/dio.dart';
-import 'package:mators_car/data/dataSource/remote/notification/notification_data.dart';
-import 'package:mators_car/data/models/notification_model.dart';
-import 'package:mators_car/data/models/notifications_page_model.dart';
-import 'package:mators_car/services/api_exception.dart';
+import 'package:mators_car/screens/auth/storeg/auth_storage.dart';
+import '../api/dio_client.dart';
+import '../../data/models/notification_model.dart';
+import '../api_exception.dart';
+
+// نتيجة صفحة واحدة من الإشعارات (لدعم التحميل التدريجي / pagination)
+class NotificationsPage {
+  final List<AppNotification> items;
+  final bool hasMore;
+  final int nextPage;
+  final int unreadCount;
+
+  NotificationsPage({
+    required this.items,
+    required this.hasMore,
+    required this.nextPage,
+    required this.unreadCount,
+  });
+}
 
 // خدمة الإشعارات — تطابق قسم "11 - الإشعارات" في Postman:
 // GET /notifications
@@ -11,7 +26,7 @@ import 'package:mators_car/services/api_exception.dart';
 // PATCH /notifications/read-all
 // DELETE /notifications/{id}
 class NotificationService {
-  final NotificationData _data = NotificationData();
+  final Dio _dio = DioClient.instance.dio;
 
   // status: 'unread' أو 'read' فقط (هذه القيم يفرضها السيرفر حرفياً في
   // NotificationController@index)، أي قيمة أخرى تُهمل من طرف السيرفر.
@@ -19,30 +34,53 @@ class NotificationService {
     int page = 1,
     String? status,
   }) async {
-    final response = await _data.getNotifications(page: page, status: status);
+    final response = await _dio.get(
+      '/notifications',
+      queryParameters: {'page': page, if (status != null) 'status': status},
+      options: await _authOptions(),
+    );
     _handleResponseErrors(response, 'جلب الإشعارات');
     return _parsePage(response.data);
   }
 
   Future<AppNotification> getNotificationDetails(String id) async {
-    final response = await _data.getNotificationDetails(id);
+    final response = await _dio.get(
+      '/notifications/$id',
+      options: await _authOptions(),
+    );
     _handleResponseErrors(response, 'جلب تفاصيل الإشعار');
     return AppNotification.fromJson(_normalizeResponse(response.data));
   }
 
   Future<void> markAsRead(String id) async {
-    final response = await _data.markAsRead(id);
+    final response = await _dio.patch(
+      '/notifications/$id/read',
+      options: await _authOptions(),
+    );
     _handleResponseErrors(response, 'تعليم الإشعار كمقروء');
   }
 
   Future<void> markAllAsRead() async {
-    final response = await _data.markAllAsRead();
+    final response = await _dio.patch(
+      '/notifications/read-all',
+      options: await _authOptions(),
+    );
     _handleResponseErrors(response, 'تعليم جميع الإشعارات كمقروءة');
   }
 
   Future<void> deleteNotification(String id) async {
-    final response = await _data.deleteNotification(id);
+    final response = await _dio.delete(
+      '/notifications/$id',
+      options: await _authOptions(),
+    );
     _handleResponseErrors(response, 'حذف الإشعار');
+  }
+
+  Future<Options> _authOptions() async {
+    final token = await AuthStorage.getToken();
+    return Options(
+      headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+    );
   }
 
   // يدعم عدة أشكال محتملة للاستجابة:

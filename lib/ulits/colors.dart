@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+export '../widgets/common/app_snackbar.dart';
+
 class AppColors {
   // Primary Colors
   static const primary = Color(0xFF4361EE);

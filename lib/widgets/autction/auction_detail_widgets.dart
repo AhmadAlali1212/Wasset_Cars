@@ -162,7 +162,11 @@ class ActionButtonsBar extends StatelessWidget {
                   buttons[i].filled
                       ? ElevatedButton.icon(
                         onPressed: isProcessing ? null : buttons[i].onTap,
-                        icon: Icon(buttons[i].icon, color: Colors.white, size: 18),
+                        icon: Icon(
+                          buttons[i].icon,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         label: Text(
                           buttons[i].label,
                           style: const TextStyle(
@@ -181,7 +185,11 @@ class ActionButtonsBar extends StatelessWidget {
                       )
                       : OutlinedButton.icon(
                         onPressed: isProcessing ? null : buttons[i].onTap,
-                        icon: Icon(buttons[i].icon, color: buttons[i].color, size: 18),
+                        icon: Icon(
+                          buttons[i].icon,
+                          color: buttons[i].color,
+                          size: 18,
+                        ),
                         label: Text(
                           buttons[i].label,
                           style: TextStyle(
@@ -226,7 +234,11 @@ class InfoBanner extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13),
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
@@ -263,7 +275,11 @@ class InfoBannerWithRefresh extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13),
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ),
           TextButton.icon(
@@ -303,7 +319,10 @@ class LiveBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
         children: [
           if (pulsing)

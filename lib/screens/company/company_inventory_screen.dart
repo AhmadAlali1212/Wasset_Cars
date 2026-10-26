@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/services/controllers/company_service.dart';
-import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
 import 'package:mators_car/ulits/localization/app_localizations.dart';

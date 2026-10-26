@@ -3,13 +3,11 @@ import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/rental/rentalAd_details_creen.dart';
 import 'package:mators_car/services/controllers/promotion_service.dart';
 import 'package:mators_car/services/controllers/rental_ad_service.dart';
+
 import 'package:mators_car/widgets/app_home_style_header.dart';
-import 'package:mators_car/widgets/section_header.dart';
-import 'package:mators_car/widgets/common/skeleton_loader.dart';
-import 'package:mators_car/widgets/sellCars/home_common_widgets.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
 import 'package:mators_car/ulits/localization/app_localizations.dart';
-import 'package:mators_car/widgets/rental/rental_ads/rental_ad_cards.dart';
+import 'package:mators_car/widgets/rental/rental_ads/rental_ads_widgets.dart';
 
 class RentalAdsScreen extends StatefulWidget {
   const RentalAdsScreen({super.key});
@@ -203,32 +201,14 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
 
     // واجهة "عرض الكل" في حال تم الضغط عليها
     if (_viewAllList != null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(_viewAllTitle ?? context.tr('rental_ads')),
-          centerTitle: true,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed:
-                () => setState(() {
-                  _viewAllList = null;
-                  _viewAllTitle = null;
-                }),
-          ),
-        ),
-        body: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: _viewAllList!.length,
-          itemBuilder: (context, index) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: RentalAdCard(
-                ad: _viewAllList![index],
-                onTap: () => _navigateToDetail(_viewAllList![index], context),
-              ),
-            );
-          },
-        ),
+      return RentalAdsViewAll(
+        title: _viewAllTitle ?? context.tr('rental_ads'),
+        ads: _viewAllList!,
+        onBack:
+            () => setState(() {
+              _viewAllList = null;
+              _viewAllTitle = null;
+            }),
       );
     }
 
@@ -247,7 +227,22 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
                 onFilterTap: _showSortSheet,
               ),
               const SizedBox(height: 16),
-              Expanded(child: _buildBody(filteredAds, featuredAds)),
+              Expanded(
+                child: RentalAdsBody(
+                  rentalAds: rentalAds,
+                  filteredAds: filteredAds,
+                  featuredAds: featuredAds,
+                  searchQuery: _searchQuery,
+                  isLoading: _isLoading,
+                  errorMessage: _errorMessage,
+                  isLoadingMore: _isLoadingMore,
+                  hasMorePages: _hasMorePages,
+                  scrollController: _scrollController,
+                  onRefresh: _loadRentalAds,
+                  onViewAll: _showAllAds,
+                  onAdTap: (ad) => _navigateToDetail(ad, context),
+                ),
+              ),
             ],
           ),
         ),
@@ -263,167 +258,14 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) {
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                context.tr('filter_ads'),
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.sort),
-                title: Text(context.tr('newest')),
-                trailing:
-                    _sortMode == 'newest' ? const Icon(Icons.check) : null,
-                onTap: () {
-                  setState(() => _sortMode = 'newest');
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.attach_money),
-                title: Text(context.tr('lowest_price')),
-                trailing:
-                    _sortMode == 'price_asc' ? const Icon(Icons.check) : null,
-                onTap: () {
-                  setState(() => _sortMode = 'price_asc');
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.attach_money_outlined),
-                title: Text(context.tr('highest_price')),
-                trailing:
-                    _sortMode == 'price_desc' ? const Icon(Icons.check) : null,
-                onTap: () {
-                  setState(() => _sortMode = 'price_desc');
-                  Navigator.pop(context);
-                },
-              ),
-            ],
+      builder:
+          (_) => RentalAdsSortSheet(
+            selectedMode: _sortMode,
+            onSelected: (mode) {
+              setState(() => _sortMode = mode);
+              Navigator.pop(context);
+            },
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBody(List<Ad> filteredAds, List<Ad> featuredAds) {
-    if (_isLoading) {
-      return const SkeletonCarGrid(itemCount: 6);
-    }
-
-    if (_errorMessage != null) {
-      return RefreshIndicator(
-        onRefresh: _loadRentalAds,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: [
-            const SizedBox(height: 120),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  _errorMessage!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.red),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadRentalAds,
-      child: ListView(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        children: [
-          // 1. قسم الإعلانات المميزة (يختفي أثناء البحث لتسهيل تجربة المستخدم)
-          if (_searchQuery.isEmpty && featuredAds.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SectionHeader(
-                title: context.tr('featured_ads'),
-                onViewAll:
-                    () => _showAllAds(
-                      context.tr('featured_ads'),
-                      rentalAds.where((ad) => ad.isFeatured).toList(),
-                    ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height:
-                  290, // زيادة الارتفاع ليتناسب مع أبعاد التصميم الجديد المرفق بالصورة
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(right: 16),
-                itemCount: featuredAds.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 16),
-                    child: FeaturedRentalCard(
-                      ad: featuredAds[index],
-                      onTap:
-                          () => _navigateToDetail(featuredAds[index], context),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          // 2. جميع إعلانات التأجير
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SectionHeader(
-              title: context.tr('all_rental_ads'),
-              onViewAll:
-                  () => _showAllAds(context.tr('all_rental_ads'), rentalAds),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          filteredAds.isEmpty
-              ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Text(context.tr('no_matching_results')),
-                ),
-              )
-              : ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: filteredAds.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: RentalAdCard(
-                      ad: filteredAds[index],
-                      onTap:
-                          () => _navigateToDetail(filteredAds[index], context),
-                    ),
-                  );
-                },
-              ),
-          // ⬅️ جديد: مؤشر تحميل الصفحة التالية (Infinite Scroll)
-          if (_searchQuery.isEmpty)
-            LoadMoreFooter(
-              isLoadingMore: _isLoadingMore,
-              hasMorePages: _hasMorePages,
-              showEndMessage: rentalAds.isNotEmpty,
-            ),
-        ],
-      ),
     );
   }
 }

@@ -34,7 +34,11 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
       _refresh();
     } catch (e) {
       if (!mounted) return;
-      AppSnackbar.showError(context, title: 'تعذّر إلغاء الحظر', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إلغاء الحظر',
+        debugMessage: e,
+      );
     }
   }
 
@@ -47,7 +51,10 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
         elevation: 0,
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text('المستخدمون المحظورون', style: TextStyle(color: Colors.black)),
+        title: const Text(
+          'المستخدمون المحظورون',
+          style: TextStyle(color: Colors.black),
+        ),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _blockedFuture,
@@ -71,12 +78,25 @@ class _BlockedUsersScreenState extends State<BlockedUsersScreen> {
             itemCount: blocks.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
-              final blockedUser = blocks[index]['blockedUser'] ?? blocks[index]['blocked_user'];
-              final name = blockedUser is Map ? blockedUser['name']?.toString() ?? 'مستخدم' : 'مستخدم';
-              final userId = blockedUser is Map ? (blockedUser['id'] as num?)?.toInt() : null;
+              final blockedUser =
+                  blocks[index]['blockedUser'] ?? blocks[index]['blocked_user'];
+              final name =
+                  blockedUser is Map
+                      ? blockedUser['name']?.toString() ?? 'مستخدم'
+                      : 'مستخدم';
+              final userId =
+                  blockedUser is Map
+                      ? (blockedUser['id'] as num?)?.toInt()
+                      : null;
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(name),

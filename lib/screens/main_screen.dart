@@ -6,7 +6,7 @@ import 'package:mators_car/screens/auction/auctions_screen.dart';
 import 'package:mators_car/screens/adsCar/rental/rentalAds_screen.dart'; // صفحة التأجير المحدثة
 import 'package:mators_car/screens/adsCar/sellCars/home_ads_screen.dart'; // سيارات التطبيق المعروضة للمستخدمين
 import 'package:mators_car/screens/promotions/promoted_cars_screen.dart';
-import 'package:mators_car/services/controllers/auth_service.dart';
+import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
 import 'package:mators_car/ulits/localization/app_localizations.dart';
 

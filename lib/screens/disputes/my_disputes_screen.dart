@@ -105,27 +105,46 @@ class _MyDisputesScreenState extends State<MyDisputesScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('نزاع #${d['id']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            'نزاع #${d['id']}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: _statusColor(status).withValues(alpha: 0.1),
+                              color: _statusColor(
+                                status,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               _statusLabel(status),
-                              style: TextStyle(color: _statusColor(status), fontSize: 11, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: _statusColor(status),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 6),
-                      Text(d['description']?.toString() ?? '', maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(
+                        d['description']?.toString() ?? '',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       if ((d['admin_notes'] ?? '').toString().isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
                           'ملاحظة الدعم: ${d['admin_notes']}',
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ],

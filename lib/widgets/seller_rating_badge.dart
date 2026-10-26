@@ -77,10 +77,7 @@ class _SellerRatingBadgeState extends State<SellerRatingBadge> {
             const SizedBox(width: 4),
             Text(
               '${average.toStringAsFixed(1)} (${ratings.length} تقييم)',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: widget.fontSize,
-              ),
+              style: TextStyle(color: Colors.grey, fontSize: widget.fontSize),
             ),
           ],
         );

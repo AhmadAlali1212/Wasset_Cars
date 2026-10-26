@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/ulits/colors.dart';
 
-import 'package:mators_car/data/models/subscription_model.dart';
+import '../../data/models/subscription_model.dart';
 
 class SubscriptionSuccessScreen extends StatelessWidget {
   final Subscription subscription;
@@ -27,19 +27,13 @@ class SubscriptionSuccessScreen extends StatelessWidget {
               const SizedBox(height: 24),
               const Text(
                 'تم الاشتراك بنجاح!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               Text(
                 'اشتراكك ساري حتى ${subscription.endDate}',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textSecondary,
-                ),
+                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24),
               Container(
@@ -76,7 +70,7 @@ class SubscriptionSuccessScreen extends StatelessWidget {
                     Navigator.popUntil(context, (route) => route.isFirst);
                   },
                   style: ElevatedButton.styleFrom(
-            foregroundColor: Colors.white,
+                    foregroundColor: Colors.white,
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

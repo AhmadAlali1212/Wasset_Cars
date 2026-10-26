@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/data/models/auction_model.dart';
 import 'package:mators_car/ulits/colors.dart';
-import 'package:mators_car/ulits/constans.dart';
+import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
 
 /// ودجات استُخرجت من شاشة "مزاداتي" (my_auctions_screen.dart) دون أي
@@ -14,7 +14,12 @@ class MyAuctionFilterChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const MyAuctionFilterChip({super.key, required this.label, required this.selected, required this.onTap});
+  const MyAuctionFilterChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +30,9 @@ class MyAuctionFilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? AppColors.primary : context.adaptiveCardBg,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? AppColors.primary : Colors.black12),
+          border: Border.all(
+            color: selected ? AppColors.primary : Colors.black12,
+          ),
         ),
         child: Text(
           label,
@@ -66,10 +73,14 @@ class MyAuctionOwnerCard extends StatelessWidget {
       case 'pending':
         return Colors.orange;
       default:
-        if (s.contains('reject') || s.contains('cancel') || s.contains('withdraw')) {
+        if (s.contains('reject') ||
+            s.contains('cancel') ||
+            s.contains('withdraw')) {
           return Colors.red;
         }
-        if (s.contains('complete') || s.contains('sold') || s.contains('done')) {
+        if (s.contains('complete') ||
+            s.contains('sold') ||
+            s.contains('done')) {
           return Colors.blue;
         }
         if (s.contains('accept')) return AppColors.primary;
@@ -88,7 +99,9 @@ class MyAuctionOwnerCard extends StatelessWidget {
         if (s.contains('reject')) return 'مرفوض';
         if (s.contains('cancel')) return 'ملغى';
         if (s.contains('withdraw')) return 'تراجع الفائز';
-        if (s.contains('complete') || s.contains('sold') || s.contains('done')) {
+        if (s.contains('complete') ||
+            s.contains('sold') ||
+            s.contains('done')) {
           return 'مكتمل ✅';
         }
         if (s.contains('accept')) return 'بانتظار إتمام البيع';
@@ -98,7 +111,9 @@ class MyAuctionOwnerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = AppConstants.resolveImageUrl(auction.car.images.isNotEmpty ? auction.car.images.first : null);
+    final imageUrl = AppConstants.resolveImageUrl(
+      auction.car.images.isNotEmpty ? auction.car.images.first : null,
+    );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -106,7 +121,11 @@ class MyAuctionOwnerCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: InkWell(
@@ -127,20 +146,31 @@ class MyAuctionOwnerCard extends StatelessWidget {
                           height: 84,
                           fit: BoxFit.cover,
                           memCacheWidth: 168,
-                          placeholder: (_, __) => Container(width: 84, height: 84, color: const Color(0xFFF0F0F0)),
+                          placeholder:
+                              (_, __) => Container(
+                                width: 84,
+                                height: 84,
+                                color: const Color(0xFFF0F0F0),
+                              ),
                           errorWidget:
                               (_, __, ___) => Container(
                                 width: 84,
                                 height: 84,
                                 color: const Color(0xFFF0F0F0),
-                                child: const Icon(Icons.directions_car, color: Colors.grey),
+                                child: const Icon(
+                                  Icons.directions_car,
+                                  color: Colors.grey,
+                                ),
                               ),
                         )
                         : Container(
                           width: 84,
                           height: 84,
                           color: const Color(0xFFF0F0F0),
-                          child: const Icon(Icons.directions_car, color: Colors.grey),
+                          child: const Icon(
+                            Icons.directions_car,
+                            color: Colors.grey,
+                          ),
                         ),
               ),
               const SizedBox(width: 12),
@@ -153,17 +183,30 @@ class MyAuctionOwnerCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '${auction.car.make} ${auction.car.model} ${auction.car.year}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(color: _badgeColor().withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _badgeColor().withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           child: Text(
                             _badgeLabel(),
-                            style: TextStyle(fontSize: 11, color: _badgeColor(), fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: _badgeColor(),
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -171,10 +214,20 @@ class MyAuctionOwnerCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       'أعلى مزايدة: ${auction.currentPrice} ل.س',
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
                     ),
                     const SizedBox(height: 2),
-                    Text('عدد المزايدات: ${auction.bids.length}', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                    Text(
+                      'عدد المزايدات: ${auction.bids.length}',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     if (statusCategory == 'ended')
                       // بعد انتهاء المزاد لا معنى لتعديله أو حذفه؛ التوجيه
@@ -185,7 +238,10 @@ class MyAuctionOwnerCard extends StatelessWidget {
                           onPressed: onTap,
                           icon: const Icon(Icons.arrow_forward_ios, size: 12),
                           label: const Text('عرض التفاصيل واتخاذ القرار'),
-                          style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: AppColors.primary),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            foregroundColor: AppColors.primary,
+                          ),
                         ),
                       )
                     else
@@ -197,9 +253,13 @@ class MyAuctionOwnerCard extends StatelessWidget {
                               icon: const Icon(Icons.edit_outlined, size: 16),
                               label: const Text('تعديل'),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 foregroundColor: AppColors.primary,
-                                side: const BorderSide(color: AppColors.primary),
+                                side: const BorderSide(
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ),
                           ),
@@ -207,10 +267,19 @@ class MyAuctionOwnerCard extends StatelessWidget {
                           Expanded(
                             child: OutlinedButton.icon(
                               onPressed: onDelete,
-                              icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
-                              label: const Text('حذف', style: TextStyle(color: Colors.red)),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 16,
+                                color: Colors.red,
+                              ),
+                              label: const Text(
+                                'حذف',
+                                style: TextStyle(color: Colors.red),
+                              ),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 side: const BorderSide(color: Colors.red),
                               ),
                             ),

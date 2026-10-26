@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/services/controllers/promotion_service.dart';
 import 'package:mators_car/services/controllers/subscription_service.dart';
+
 import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/services/local_promotions_cache.dart';
 import 'subscription_screen.dart';
@@ -69,16 +70,17 @@ class _AddPromotionScreenState extends State<AddPromotionScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => SubscriptionRequiredSheet(
-        onSubscribeTap: () async {
-          Navigator.pop(sheetContext);
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
-          );
-          await _checkSubscription();
-        },
-      ),
+      builder:
+          (sheetContext) => SubscriptionRequiredSheet(
+            onSubscribeTap: () async {
+              Navigator.pop(sheetContext);
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+              );
+              await _checkSubscription();
+            },
+          ),
     );
   }
 
@@ -93,7 +95,8 @@ class _AddPromotionScreenState extends State<AddPromotionScreen> {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: isStart ? now : (_startDate ?? now).add(const Duration(days: 7)),
+      initialDate:
+          isStart ? now : (_startDate ?? now).add(const Duration(days: 7)),
       firstDate: isStart ? now : (_startDate ?? now),
       lastDate: now.add(const Duration(days: 365)),
       helpText: isStart ? 'تاريخ بداية العرض' : 'تاريخ نهاية العرض',
@@ -178,7 +181,9 @@ class _AddPromotionScreenState extends State<AddPromotionScreen> {
         children: [
           PromotionStepper(step: _step),
           if (_isSubscribed == false)
-            PromotionSubscriptionBanner(onSubscribeTap: _showSubscriptionRequiredSheet),
+            PromotionSubscriptionBanner(
+              onSubscribeTap: _showSubscriptionRequiredSheet,
+            ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
@@ -188,7 +193,8 @@ class _AddPromotionScreenState extends State<AddPromotionScreen> {
                         titleController: _titleController,
                         descriptionController: _descriptionController,
                         type: _type,
-                        onTypeChanged: (v) => setState(() => _type = v ?? 'discount'),
+                        onTypeChanged:
+                            (v) => setState(() => _type = v ?? 'discount'),
                         valueController: _valueController,
                         quantityController: _quantityController,
                         startDate: _startDate,

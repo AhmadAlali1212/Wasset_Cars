@@ -47,7 +47,13 @@ class ReportUserSheet {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('الإبلاغ عن مستخدم', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const Text(
+                      'الإبلاغ عن مستخدم',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     ...reasons.entries.map(
                       (entry) => RadioListTile<String>(
@@ -81,8 +87,13 @@ class ReportUserSheet {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () => Navigator.pop(sheetContext, true),
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                        child: const Text('إرسال البلاغ', style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                        ),
+                        child: const Text(
+                          'إرسال البلاغ',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ),
                   ],
@@ -115,7 +126,11 @@ class ReportUserSheet {
       );
     } catch (e) {
       if (!context.mounted) return;
-      AppSnackbar.showError(context, title: 'تعذّر إتمام العملية', debugMessage: e);
+      AppSnackbar.showError(
+        context,
+        title: 'تعذّر إتمام العملية',
+        debugMessage: e,
+      );
     }
   }
 }

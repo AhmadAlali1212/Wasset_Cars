@@ -23,7 +23,11 @@ class PromotedSection {
   final Promotion promotion;
   final String companyName;
   final List<PromotedAd> ads;
-  PromotedSection({required this.promotion, required this.companyName, required this.ads});
+  PromotedSection({
+    required this.promotion,
+    required this.companyName,
+    required this.ads,
+  });
 }
 
 /// بطاقة سيارة صغيرة ضمن صف قسم العرض الترويجي.
@@ -35,13 +39,18 @@ class PromotedCarCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final ad = promotedAd.ad;
     final car = ad.car;
-    final priceText = promotedAd.isRental ? '${ad.dailyPrice} ل.س / يوم' : '${ad.price} ل.س';
+    final priceText =
+        promotedAd.isRental ? '${ad.dailyPrice} ل.س / يوم' : '${ad.price} ل.س';
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 3)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
         ],
       ),
       child: Column(
@@ -50,7 +59,9 @@ class PromotedCarCard extends StatelessWidget {
           Stack(
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
                 child:
                     car.images.isNotEmpty
                         ? CachedNetworkImage(
@@ -59,22 +70,45 @@ class PromotedCarCard extends StatelessWidget {
                           width: double.infinity,
                           fit: BoxFit.cover,
                           memCacheWidth: 350,
-                          placeholder: (context, url) => Container(height: 110, color: Colors.grey.shade200),
+                          placeholder:
+                              (context, url) => Container(
+                                height: 110,
+                                color: Colors.grey.shade200,
+                              ),
                           errorWidget:
-                              (context, url, error) =>
-                                  Image.asset('assets/image/intro.jpg', height: 110, width: double.infinity, fit: BoxFit.cover),
+                              (context, url, error) => Image.asset(
+                                'assets/image/intro.jpg',
+                                height: 110,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                              ),
                         )
-                        : Image.asset('assets/image/intro.jpg', height: 110, width: double.infinity, fit: BoxFit.cover),
+                        : Image.asset(
+                          'assets/image/intro.jpg',
+                          height: 110,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
               ),
               Positioned(
                 top: 8,
                 right: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: Colors.orange.shade700, borderRadius: BorderRadius.circular(20)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade700,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: const Text(
                     'عليه عرض',
-                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -89,10 +123,20 @@ class PromotedCarCard extends StatelessWidget {
                   '${car.make} ${car.model} ${car.year}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(priceText, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(
+                  priceText,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               ],
             ),
           ),
@@ -113,7 +157,9 @@ class PromotedSectionView extends StatelessWidget {
   Widget build(BuildContext context) {
     final promo = section.promotion;
     final discountLabel =
-        promo.type == 'discount' ? 'خصم ${promo.value.toStringAsFixed(0)}%' : promo.value.toStringAsFixed(0);
+        promo.type == 'discount'
+            ? 'خصم ${promo.value.toStringAsFixed(0)}%'
+            : promo.value.toStringAsFixed(0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,25 +186,42 @@ class PromotedSectionView extends StatelessWidget {
                         section.companyName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         promo.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                   child: Text(
                     discountLabel,
-                    style: const TextStyle(color: Color(0xFF0F4C81), fontWeight: FontWeight.bold, fontSize: 13),
+                    style: const TextStyle(
+                      color: Color(0xFF0F4C81),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
               ],
@@ -172,13 +235,18 @@ class PromotedSectionView extends StatelessWidget {
               Icon(Icons.access_time, size: 13, color: Colors.grey.shade500),
               const SizedBox(width: 4),
               Text(
-                promo.isExpired ? 'انتهى العرض' : 'ينتهي خلال ${promo.daysRemaining} يوم',
+                promo.isExpired
+                    ? 'انتهى العرض'
+                    : 'ينتهي خلال ${promo.daysRemaining} يوم',
                 style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
               ),
               const SizedBox(width: 12),
               Icon(Icons.directions_car, size: 13, color: Colors.grey.shade500),
               const SizedBox(width: 4),
-              Text('${section.ads.length} سيارة', style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500)),
+              Text(
+                '${section.ads.length} سيارة',
+                style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+              ),
             ],
           ),
         ),
