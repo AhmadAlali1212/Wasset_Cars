@@ -5,6 +5,7 @@ import 'package:mators_car/data/models/promotion_model.dart';
 import 'package:mators_car/services/controllers/ads_service.dart';
 import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/services/controllers/promotion_service.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/services/controllers/rental_ad_service.dart';
 import 'package:mators_car/widgets/app_home_style_header.dart';
 import 'package:mators_car/widgets/promotions/promoted_cars_widgets.dart';
@@ -257,7 +258,8 @@ class _PromotedCarsScreenState extends State<PromotedCarsScreen> {
                           const SizedBox(height: 80),
                           Center(
                             child: Text(
-                              'تعذر جلب العروض\n${snapshot.error}',
+                              'تعذر جلب العروض\n'
+                              '${ApiException.userMessage(snapshot.error)}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(color: Colors.red),
                             ),

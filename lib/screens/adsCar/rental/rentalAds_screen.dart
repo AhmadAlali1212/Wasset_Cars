@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/rental/rentalAd_details_creen.dart';
 import 'package:mators_car/services/controllers/promotion_service.dart';
@@ -111,7 +112,8 @@ class _RentalAdsScreenState extends State<RentalAdsScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'تعذر جلب إعلانات التأجير: $e';
+        _errorMessage =
+            'تعذر جلب إعلانات التأجير: ${ApiException.userMessage(e)}';
         _isLoading = false;
       });
     }

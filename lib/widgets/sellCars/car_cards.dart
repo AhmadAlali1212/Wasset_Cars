@@ -141,7 +141,10 @@ class GridCarCard extends StatelessWidget {
                       specs,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 6),
@@ -158,7 +161,11 @@ class GridCarCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.more_horiz, size: 16, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.more_horiz,
+                        size: 16,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/constant.dart';
+import 'package:mators_car/services/api_exception.dart';
 
 /// ودجات استُخرجت من دوال _build... الخاصة بشاشة إنشاء/تعديل المزاد
 /// (add_auction_screen.dart) دون أي تغيير بالتصميم أو المنطق.
@@ -146,7 +147,8 @@ class AuctionCarStep extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.only(top: 40),
             child: Text(
-              'تعذر جلب سياراتك\n${snapshot.error}',
+              'تعذر جلب سياراتك\n'
+              '${ApiException.userMessage(snapshot.error)}',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.red),
             ),

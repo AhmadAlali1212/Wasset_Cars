@@ -15,6 +15,7 @@ import 'package:mators_car/screens/disputes/my_disputes_screen.dart';
 import 'package:mators_car/screens/settings/blocked_users_screen.dart';
 import 'package:mators_car/screens/company/following_companies_screen.dart';
 import 'package:mators_car/services/controllers/company_service.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
 import 'package:mators_car/ulits/localization/app_localizations.dart';
@@ -78,7 +79,8 @@ class _IndividualDashboardScreenState extends State<IndividualDashboardScreen> {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                '${context.tr('account_data_load_failed')}\n${snapshot.error}',
+                '${context.tr('account_data_load_failed')}\n'
+                '${ApiException.userMessage(snapshot.error)}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),

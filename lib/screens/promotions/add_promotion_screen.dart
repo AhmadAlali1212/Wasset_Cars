@@ -158,7 +158,7 @@ class _AddPromotionScreenState extends State<AddPromotionScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'فشل إنشاء العرض: $e';
+        _errorMessage = 'فشل إنشاء العرض: ${ApiException.userMessage(e)}';
         _isSubmitting = false;
       });
     }

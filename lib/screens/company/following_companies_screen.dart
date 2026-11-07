@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/services/controllers/follow_service.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
@@ -77,7 +78,8 @@ class _FollowingCompaniesScreenState extends State<FollowingCompaniesScreen> {
                         const SizedBox(height: 80),
                         Center(
                           child: Text(
-                            '${context.tr('following_companies_load_failed')}\n${snapshot.error}',
+                            '${context.tr('following_companies_load_failed')}\n'
+                            '${ApiException.userMessage(snapshot.error)}',
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.red),
                           ),

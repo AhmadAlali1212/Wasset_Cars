@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/data/models/auction_model.dart';
 import 'package:mators_car/services/controllers/auction_service.dart';
@@ -94,7 +95,8 @@ class _MyBidsScreenState extends State<MyBidsScreen> {
                   const SizedBox(height: 80),
                   Center(
                     child: Text(
-                      '${context.tr('my_bids_load_failed')}\n${snapshot.error}',
+                      '${context.tr('my_bids_load_failed')}\n'
+                      '${ApiException.userMessage(snapshot.error)}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.red),
                     ),

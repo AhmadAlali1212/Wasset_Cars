@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/data/models/auction_model.dart';
 import 'package:mators_car/services/controllers/auction_service.dart';
-import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/widgets/common/skeleton_loader.dart';
@@ -205,7 +205,8 @@ class _MyAuctionsScreenState extends State<MyAuctionsScreen> {
                         const SizedBox(height: 80),
                         Center(
                           child: Text(
-                            '${context.tr('my_auctions_load_failed')}\n${snapshot.error}',
+                            '${context.tr('my_auctions_load_failed')}\n'
+                            '${ApiException.userMessage(snapshot.error)}',
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.red),
                           ),

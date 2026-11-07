@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/screens/home/payment_methods_screen.dart';
 import 'package:mators_car/services/controllers/company_service.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/services/stripe_payment_helper.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/widgets/individual/individual_wallet_widgets.dart';
@@ -306,7 +307,8 @@ class _IndividualWalletScreenState extends State<IndividualWalletScreen> {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                'تعذر جلب بيانات المحفظة\n${snapshot.error}',
+                'تعذر جلب بيانات المحفظة\n'
+                '${ApiException.userMessage(snapshot.error)}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),

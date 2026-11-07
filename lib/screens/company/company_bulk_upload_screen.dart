@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mators_car/screens/company/map_location_picker_screen.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/services/controllers/ads_service.dart';
 import 'package:mators_car/services/controllers/company_service.dart';
 import 'package:mators_car/ulits/colors.dart';
@@ -100,7 +101,10 @@ class _CompanyBulkUploadScreenState extends State<CompanyBulkUploadScreen> {
     } catch (e) {
       setState(() {
         entry.status = BatchUploadStatus.failed;
-        entry.errorMessage = e.toString();
+        entry.errorMessage = ApiException.userMessage(
+          e,
+          fallback: 'تعذر رفع السيارة، يرجى المحاولة مرة أخرى',
+        );
       });
     }
   }

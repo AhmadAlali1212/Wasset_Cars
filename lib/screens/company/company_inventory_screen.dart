@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/services/controllers/company_service.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
@@ -337,10 +338,7 @@ class _CompanyInventoryScreenState extends State<CompanyInventoryScreen> {
                 }
 
                 if (snapshot.hasError) {
-                  final errorMsg = snapshot.error.toString().replaceAll(
-                    'Exception: ',
-                    '',
-                  );
+                  final errorMsg = ApiException.userMessage(snapshot.error);
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.all(20.0),

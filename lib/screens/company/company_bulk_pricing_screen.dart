@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/services/controllers/ads_service.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
 import 'package:mators_car/ulits/localization/app_localizations.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
@@ -103,7 +104,8 @@ class _CompanyBulkPricingScreenState extends State<CompanyBulkPricingScreen> {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                '${context.tr('draft_ads_load_failed')}\n${snapshot.error}',
+                '${context.tr('draft_ads_load_failed')}\n'
+                '${ApiException.userMessage(snapshot.error)}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),

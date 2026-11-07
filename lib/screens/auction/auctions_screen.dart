@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/data/models/auction_model.dart';
 import 'package:mators_car/services/controllers/auction_service.dart';
 import 'package:mators_car/widgets/app_home_style_header.dart';
@@ -186,7 +187,8 @@ class _AuctionsScreenState extends State<AuctionsScreen> {
                           const SizedBox(height: 80),
                           Center(
                             child: Text(
-                              'تعذر جلب المزادات\n${snapshot.error}',
+                              'تعذر جلب المزادات\n'
+                              '${ApiException.userMessage(snapshot.error)}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(color: Colors.red),
                             ),

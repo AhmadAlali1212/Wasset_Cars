@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/services/controllers/company_service.dart';
 import 'package:mators_car/ulits/colors.dart';
@@ -90,7 +91,8 @@ class _CarPickerSheetState extends State<CarPickerSheet> {
                     if (snapshot.hasError) {
                       return Center(
                         child: Text(
-                          'تعذر جلب السيارات\n${snapshot.error}',
+                          'تعذر جلب السيارات\n'
+                          '${ApiException.userMessage(snapshot.error)}',
                           textAlign: TextAlign.center,
                           style: const TextStyle(color: Colors.red),
                         ),

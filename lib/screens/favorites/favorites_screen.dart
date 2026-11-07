@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/data/models/ad_model.dart';
 import 'package:mators_car/screens/adsCar/sellCars/ad_detail_screen.dart';
@@ -111,7 +112,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   const SizedBox(height: 80),
                   Center(
                     child: Text(
-                      'تعذر جلب المفضلة\n${snapshot.error}',
+                      'تعذر جلب المفضلة\n'
+                      '${ApiException.userMessage(snapshot.error)}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.red),
                     ),

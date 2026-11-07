@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:mators_car/data/models/rental_booking_model.dart';
 import 'package:mators_car/screens/disputes/raise_dispute_screen.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/constant.dart';
 import 'package:mators_car/widgets/common/skeleton_loader.dart';
@@ -61,7 +62,7 @@ class _BookingsErrorState extends StatelessWidget {
         const SizedBox(height: 80),
         Center(
           child: Text(
-            'تعذر جلب حجوزاتك\n$error',
+            'تعذر جلب حجوزاتك\n${ApiException.userMessage(error)}',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.red),
           ),

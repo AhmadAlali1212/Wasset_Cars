@@ -193,7 +193,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   const SizedBox(height: 80),
                   Center(
                     child: Text(
-                      'تعذر جلب حالة الاشتراك\n${snapshot.error}',
+                      'تعذر جلب حالة الاشتراك\n'
+                      '${ApiException.userMessage(snapshot.error)}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.red),
                     ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/data/models/promotion_model.dart';
 import 'package:mators_car/services/controllers/promotion_service.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/services/local_promotions_cache.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
@@ -172,7 +173,8 @@ class _PromotionsScreenState extends State<PromotionsScreen> {
                         const SizedBox(height: 60),
                         Center(
                           child: Text(
-                            'تعذر جلب العروض\n${snapshot.error}',
+                            'تعذر جلب العروض\n'
+                            '${ApiException.userMessage(snapshot.error)}',
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: Colors.red),
                           ),

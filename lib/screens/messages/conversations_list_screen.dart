@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/screens/messages/chat_thread_screen.dart';
 import 'package:mators_car/services/controllers/message_service.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/common/skeleton_loader.dart';
 
@@ -9,7 +10,8 @@ class ConversationsListScreen extends StatefulWidget {
   const ConversationsListScreen({super.key});
 
   @override
-  State<ConversationsListScreen> createState() => _ConversationsListScreenState();
+  State<ConversationsListScreen> createState() =>
+      _ConversationsListScreenState();
 }
 
 class _ConversationsListScreenState extends State<ConversationsListScreen> {
@@ -65,8 +67,12 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                 children: [
                   const SizedBox(height: 80),
                   Center(
-                    child: Text('تعذر جلب المحادثات\n${snapshot.error}',
-                        textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+                    child: Text(
+                      'تعذر جلب المحادثات\n'
+                      '${ApiException.userMessage(snapshot.error)}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ),
                 ],
               );
@@ -78,7 +84,11 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 children: const [
                   SizedBox(height: 100),
-                  Icon(Icons.chat_bubble_outline, size: 56, color: Colors.black26),
+                  Icon(
+                    Icons.chat_bubble_outline,
+                    size: 56,
+                    color: Colors.black26,
+                  ),
                   SizedBox(height: 12),
                   Center(child: Text('لا توجد محادثات بعد')),
                 ],
@@ -103,10 +113,11 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ChatThreadScreen(
-                          partnerId: partnerId,
-                          partnerName: partnerName,
-                        ),
+                        builder:
+                            (_) => ChatThreadScreen(
+                              partnerId: partnerId,
+                              partnerName: partnerName,
+                            ),
                       ),
                     ).then((_) => _refresh());
                   },
@@ -120,10 +131,15 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                       children: [
                         CircleAvatar(
                           radius: 24,
-                          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                          backgroundColor: AppColors.primary.withValues(
+                            alpha: 0.1,
+                          ),
                           child: Text(
                             partnerName.isNotEmpty ? partnerName[0] : '؟',
-                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -131,16 +147,28 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(partnerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(
+                                partnerName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
                               const SizedBox(height: 3),
                               Text(
                                 isMine ? 'أنت: $lastMessage' : lastMessage,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: unread > 0 ? Colors.black87 : Colors.grey.shade600,
+                                  color:
+                                      unread > 0
+                                          ? Colors.black87
+                                          : Colors.grey.shade600,
                                   fontSize: 12,
-                                  fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.normal,
+                                  fontWeight:
+                                      unread > 0
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -150,20 +178,31 @@ class _ConversationsListScreenState extends State<ConversationsListScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              _formatRelativeTime(c['last_message_at']?.toString()),
-                              style: TextStyle(color: Colors.grey.shade500, fontSize: 10),
+                              _formatRelativeTime(
+                                c['last_message_at']?.toString(),
+                              ),
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 10,
+                              ),
                             ),
                             if (unread > 0) ...[
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.primary,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
                                   '$unread',
-                                  style: const TextStyle(color: Colors.white, fontSize: 10),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                  ),
                                 ),
                               ),
                             ],

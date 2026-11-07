@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mators_car/screens/auth/login_screen.dart';
 import 'package:mators_car/screens/auth/verification_screen.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/services/controllers/auth_serivces.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
@@ -85,31 +86,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
       } on DioException catch (e) {
-        String errorMessage = 'حدث خطأ أثناء التسجيل';
-        final responseData = e.response?.data;
-
-        if (responseData is Map && responseData['errors'] is Map) {
-          final errors = responseData['errors'] as Map;
-          final lines =
-              errors.entries.map((entry) {
-                final value = entry.value;
-                if (value is List) {
-                  return '${entry.key}: ${value.join(', ')}';
-                }
-                return '${entry.key}: ${value.toString()}';
-              }).toList();
-          if (lines.isNotEmpty) {
-            errorMessage = lines.join('\n');
-          }
-        } else if (responseData is Map && responseData['message'] != null) {
-          errorMessage = responseData['message'].toString();
-        } else if (responseData is String && responseData.isNotEmpty) {
-          errorMessage = responseData;
-        }
         // ملاحظة: لا نستخدم e.message/e.error/e.toString() كرسالة احتياطية
         // بعد الآن لأنها نصوص تقنية خام (مثل "DioException [connection
         // timeout]")، غير مناسبة لعرضها على المستخدم. تُطبع فقط بالتصحيح.
         debugPrint('Register DioException: $e');
+        final errorMessage = ApiException.userMessage(
+          e,
+          fallback: 'تعذر إنشاء الحساب، يرجى المحاولة مرة أخرى',
+        );
         if (!mounted) {
           return;
         }

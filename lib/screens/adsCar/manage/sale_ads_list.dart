@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/screens/adsCar/manage/add_sale_ad_screen.dart';
 import 'package:mators_car/services/controllers/ads_service.dart';
@@ -348,7 +349,8 @@ class _SaleAdsListState extends State<SaleAdsList> {
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Text(
-                'تعذر جلب إعلانات البيع\n${snapshot.error}',
+                'تعذر جلب إعلانات البيع\n'
+                '${ApiException.userMessage(snapshot.error)}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),

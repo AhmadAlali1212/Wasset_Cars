@@ -187,7 +187,7 @@ class _AddAuctionScreenState extends State<AddAuctionScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'فشلت العملية: $e';
+        _errorMessage = 'فشلت العملية: ${ApiException.userMessage(e)}';
         _isSubmitting = false;
       });
     }

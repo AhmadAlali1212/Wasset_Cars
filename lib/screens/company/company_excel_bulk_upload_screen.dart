@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:mators_car/screens/company/map_location_picker_screen.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/services/controllers/bulk_upload_service.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/ulits/adaptive_colors.dart';
@@ -101,7 +102,13 @@ class _CompanyExcelBulkUploadScreenState
       setState(() => _previewResult = result);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = e.toString());
+      setState(
+        () =>
+            _errorMessage = ApiException.userMessage(
+              e,
+              fallback: 'تعذر معاينة الملف، يرجى المحاولة مرة أخرى',
+            ),
+      );
     } finally {
       if (mounted) setState(() => _isPreviewing = false);
     }
@@ -130,7 +137,13 @@ class _CompanyExcelBulkUploadScreenState
       setState(() => _uploadResult = result);
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = e.toString());
+      setState(
+        () =>
+            _errorMessage = ApiException.userMessage(
+              e,
+              fallback: 'تعذر رفع الملف، يرجى المحاولة مرة أخرى',
+            ),
+      );
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }

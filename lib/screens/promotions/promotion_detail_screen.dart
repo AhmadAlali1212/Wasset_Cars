@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/data/models/promotion_model.dart';
 import 'package:mators_car/services/controllers/promotion_service.dart';
 import 'package:mators_car/ulits/colors.dart';
@@ -95,7 +96,7 @@ class _PromotionDetailScreenState extends State<PromotionDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'فشل حفظ التعديلات: $e';
+        _errorMessage = 'فشل حفظ التعديلات: ${ApiException.userMessage(e)}';
         _isSaving = false;
       });
     }

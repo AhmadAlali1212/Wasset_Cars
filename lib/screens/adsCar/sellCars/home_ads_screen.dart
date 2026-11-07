@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/services/controllers/ads_service.dart';
 import 'package:mators_car/services/controllers/auth_serivces.dart';
@@ -272,7 +273,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       setState(() {
-        _errorMessage = 'تعذر جلب بيانات الرئيسية: $e';
+        _errorMessage =
+            'تعذر جلب بيانات الرئيسية: ${ApiException.userMessage(e)}';
         _isLoading = false;
       });
     }

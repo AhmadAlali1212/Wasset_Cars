@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/screens/adsCar/manage/add_rental_ad_screen.dart';
 import 'package:mators_car/screens/adsCar/rental/manage_rental_availability_screen.dart';
@@ -208,7 +209,8 @@ class _RentalAdsListState extends State<RentalAdsList> {
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Text(
-                'تعذر جلب إعلانات التأجير\n${snapshot.error}',
+                'تعذر جلب إعلانات التأجير\n'
+                '${ApiException.userMessage(snapshot.error)}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: Colors.red),
               ),

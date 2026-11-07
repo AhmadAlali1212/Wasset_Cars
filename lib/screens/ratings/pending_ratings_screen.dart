@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mators_car/services/controllers/rating_service.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/common/app_snackbar.dart';
 import 'package:mators_car/widgets/common/skeleton_loader.dart';
@@ -190,7 +191,8 @@ class _PendingRatingsScreenState extends State<PendingRatingsScreen> {
                   const SizedBox(height: 80),
                   Center(
                     child: Text(
-                      'تعذر جلب التقييمات المعلّقة\n${snapshot.error}',
+                      'تعذر جلب التقييمات المعلّقة\n'
+                      '${ApiException.userMessage(snapshot.error)}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.red),
                     ),

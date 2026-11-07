@@ -4,6 +4,8 @@ import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:mators_car/screens/auth/acconnt_screen.dart';
 import 'package:mators_car/screens/auth/forget_screen.dart';
+import 'package:mators_car/screens/auth/verification_screen.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:mators_car/ulits/colors.dart';
 import 'package:mators_car/widgets/auth/auth_button.dart';
 import 'package:mators_car/widgets/auth/custom_textfield.dart';
@@ -60,23 +62,32 @@ class _LoginScreenState extends State<LoginScreen>
 
         Navigator.pushReplacementNamed(context, '/main');
       } on DioException catch (e) {
-        String errorMessage = 'حدث خطأ أثناء تسجيل الدخول';
         final responseData = e.response?.data;
-        if (responseData is Map) {
-          final errors = responseData['errors'];
-          if (errors is Map && errors.isNotEmpty) {
-            errorMessage = errors.entries
-                .map((entry) => '${entry.key}: ${entry.value}')
-                .join('\n');
-          } else if (responseData['message'] is String) {
-            errorMessage = responseData['message'] as String;
-          }
-        } else if (responseData is String && responseData.trim().isNotEmpty) {
-          errorMessage = responseData.trim();
-        }
+        debugPrint(
+          'Login failed: status=${e.response?.statusCode}, data=$responseData',
+        );
+        final errorMessage = ApiException.userMessage(
+          e,
+          fallback: 'تعذر تسجيل الدخول، يرجى المحاولة مرة أخرى',
+        );
         if (!mounted) {
           return;
         }
+
+        if (_requiresEmailVerification(e.response, errorMessage)) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) => VerificationScreen(
+                    accountTypeId: 1,
+                    email: _emailController.text.trim(),
+                  ),
+            ),
+          );
+          return;
+        }
+
         AppSnackbar.showError(
           context,
           title: 'تعذّر تسجيل الدخول',
@@ -98,6 +109,33 @@ class _LoginScreenState extends State<LoginScreen>
         }
       }
     }
+  }
+
+  bool _requiresEmailVerification(Response? response, String message) {
+    if (response == null ||
+        (response.statusCode != 403 && response.statusCode != 409)) {
+      return false;
+    }
+
+    final responseData = response.data;
+    if (responseData is Map) {
+      final verificationRequired =
+          responseData['email_verification_required'] ??
+          responseData['requires_verification'] ??
+          responseData['requires_email_verification'];
+      if (verificationRequired == true || verificationRequired == 1) {
+        return true;
+      }
+    }
+
+    final normalizedMessage = message.toLowerCase();
+    return normalizedMessage.contains('البريد الإلكتروني غير مفعل') ||
+        normalizedMessage.contains('البريد الإلكتروني غير مفعّل') ||
+        normalizedMessage.contains('email is not verified') ||
+        normalizedMessage.contains('email must be verified') ||
+        normalizedMessage.contains('email verification required') ||
+        normalizedMessage.contains('email_verification_required') ||
+        normalizedMessage.contains('requires_verification');
   }
 
   @override

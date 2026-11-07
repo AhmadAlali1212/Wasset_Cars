@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mators_car/services/api_exception.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mators_car/data/models/rental_booking_model.dart';
 import 'package:mators_car/services/controllers/rental_booking_service.dart';
@@ -98,7 +99,8 @@ class _IncomingRentalBookingsScreenState
                   const SizedBox(height: 80),
                   Center(
                     child: Text(
-                      'تعذر جلب الطلبات\n${snapshot.error}',
+                      'تعذر جلب الطلبات\n'
+                      '${ApiException.userMessage(snapshot.error)}',
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: Colors.red),
                     ),
