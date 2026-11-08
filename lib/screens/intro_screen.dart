@@ -61,7 +61,7 @@ class IntroScreen extends StatelessWidget {
                     ElevatedButton(
                       onPressed: () {
                         // إجراء تسجيل الدخول
-                        Navigator.pushNamed(context, '/login');
+                        Navigator.pushReplacementNamed(context, '/login');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(
@@ -91,7 +91,11 @@ class IntroScreen extends StatelessWidget {
                     TextButton(
                       onPressed: () {
                         // تصفح كزائر
-                        Navigator.pushReplacementNamed(context, '/home');
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/home',
+                          (route) => false,
+                        );
                       },
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white.withOpacity(0.9),

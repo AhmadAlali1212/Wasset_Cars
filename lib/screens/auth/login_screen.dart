@@ -60,7 +60,9 @@ class _LoginScreenState extends State<LoginScreen>
           return;
         }
 
-        Navigator.pushReplacementNamed(context, '/main');
+        // لا تترك شاشة الترحيب أو أي شاشة مصادقة في مكدس التنقل.
+        // وإلا سيعيد زر الرجوع المستخدم إلى تسجيل الدخول بعد نجاحه.
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       } on DioException catch (e) {
         final responseData = e.response?.data;
         debugPrint(

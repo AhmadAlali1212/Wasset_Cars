@@ -135,6 +135,7 @@ class _ManageAdsScreenState extends State<ManageAdsScreen>
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAddMenu,
         backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
         icon: const Icon(Icons.add),
         label: Text(context.tr('new_ad')),
       ),

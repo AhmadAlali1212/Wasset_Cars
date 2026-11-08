@@ -53,9 +53,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
       final accessToken = response['access_token'];
       if (accessToken is String && accessToken.isNotEmpty) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       } else {
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
       }
     } on DioException catch (e) {
       final String message =
