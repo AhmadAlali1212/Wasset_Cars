@@ -10,6 +10,10 @@ configurations.all {
     resolutionStrategy {
         force("androidx.activity:activity:1.9.3")
         force("androidx.fragment:fragment:1.8.5")
+        // flutter_stripe 13.1.0 requests Stripe's 23.10.+ range, which
+        // requires Maven metadata and fails when Maven Central DNS is unavailable.
+        force("com.stripe:stripe-android:23.10.1")
+        force("com.stripe:financial-connections:23.10.1")
     }
 }
 android {

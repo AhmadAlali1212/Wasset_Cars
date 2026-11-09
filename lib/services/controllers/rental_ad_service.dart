@@ -190,7 +190,17 @@ class RentalAdService {
   List _extractList(dynamic data) {
     if (data is List) return data;
     if (data is Map) {
-      for (final key in ['data', 'rental_ads', 'items', 'results']) {
+      // The rental endpoint uses the same response envelope as the sales
+      // endpoint in some deployments (`ads`), while others return
+      // `rental_ads` or camelCase `rentalAds`.
+      for (final key in [
+        'data',
+        'ads',
+        'rental_ads',
+        'rentalAds',
+        'items',
+        'results',
+      ]) {
         final value = data[key];
         if (value is List) return value;
         if (value is Map) {

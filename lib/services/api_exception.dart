@@ -54,24 +54,13 @@ class ApiException implements Exception {
     final message = error.toString().replaceFirst('Exception: ', '').trim();
     if (message.isEmpty) return fallback;
 
-    final lowerMessage = message.toLowerCase();
-    final isHtmlResponse =
-        lowerMessage.contains('<!doctype') ||
-        lowerMessage.contains('<html') ||
-        lowerMessage.contains('<head') ||
-        lowerMessage.contains('<body') ||
-        lowerMessage.contains('apache/') ||
-        lowerMessage.contains('not found') ||
-        lowerMessage.startsWith('dioexception') ||
-        lowerMessage.contains('requestoptions');
-
-    return isHtmlResponse ? fallback : message;
+    return _sanitizeUserMessage(message, fallback: fallback) ?? fallback;
   }
 
   static String? _messageFromResponse(dynamic data) {
     if (data is String) {
       final message = data.trim();
-      return _isTechnicalOrHtml(message) ? null : message;
+      return _sanitizeUserMessage(message);
     }
 
     if (data is! Map) return null;
@@ -84,27 +73,53 @@ class ApiException implements Exception {
             value is List
                 ? value.map((item) => item.toString()).join(', ')
                 : value.toString();
-        if (text.trim().isNotEmpty) messages.add('$key: ${text.trim()}');
+        final sanitized = _sanitizeUserMessage(text);
+        if (sanitized != null) messages.add('$key: $sanitized');
       });
       if (messages.isNotEmpty) return messages.join('\n');
     }
 
     final message = map['message'];
-    if (message is String && !_isTechnicalOrHtml(message.trim())) {
-      return message.trim();
+    if (message is String) {
+      return _sanitizeUserMessage(message);
     }
     return null;
   }
 
-  static bool _isTechnicalOrHtml(String message) {
-    final lowerMessage = message.toLowerCase();
-    return message.isEmpty ||
+  static String? _sanitizeUserMessage(String message, {String? fallback}) {
+    var sanitized = message.trim();
+    sanitized = sanitized.replaceFirst(
+      RegExp(r'^\s*(?:error\s*:\s*)+', caseSensitive: false),
+      '',
+    );
+    sanitized = sanitized.replaceFirst(
+      RegExp(r'^\s*[^:\n]{1,100}\s+فشل\s*:\s*'),
+      '',
+    );
+    sanitized = sanitized.replaceFirst(
+      RegExp(r'^\s*[^:\n]{1,100}\s+failed\s*:\s*', caseSensitive: false),
+      '',
+    );
+    sanitized = sanitized.replaceFirst(
+      RegExp(r'^\s*status\s*:\s*', caseSensitive: false),
+      '',
+    );
+
+    final lowerMessage = sanitized.toLowerCase();
+    final isTechnicalOrHtml =
+        sanitized.isEmpty ||
         lowerMessage.contains('<!doctype') ||
         lowerMessage.contains('<html') ||
         lowerMessage.contains('<head') ||
         lowerMessage.contains('<body') ||
+        lowerMessage.contains('apache/') ||
+        lowerMessage.contains('not found') ||
+        lowerMessage.contains('requestoptions') ||
         lowerMessage.startsWith('dioexception') ||
-        lowerMessage.contains('requestoptions');
+        lowerMessage.contains('stack trace') ||
+        lowerMessage.startsWith('exception:');
+
+    return isTechnicalOrHtml ? fallback : sanitized;
   }
 
   @override
